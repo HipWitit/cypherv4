@@ -9,12 +9,12 @@ from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.backends import default_backend
 
-# --- 1. CONFIG & STYLING (Sacred Layout) ---
+# --- 1. CONFIG & STYLING ---
 st.set_page_config(page_title="Cyfer Pro: Secret Language", layout="centered")
 
 raw_pepper = st.secrets.get("MY_SECRET_PEPPER") or "global_unicode_spice_2026"
 PEPPER = str(raw_pepper).encode()
-U_MOD = 256 # Operating on bytes now
+U_MOD = 256 
 ROUNDS = 3
 
 st.markdown(f"""
@@ -89,27 +89,21 @@ def from_emoji(s):
     return int(res) if res else 0
 
 def get_keys_and_perms(kw):
-    kdf = PBKDF2HMAC(algorithm=hashes.SHA256(), length=64, salt=b"csprng_v1", iterations=100000, backend=default_backend())
+    kdf = PBKDF2HMAC(algorithm=hashes.SHA256(), length=64, salt=b"csprng_v3", iterations=100000, backend=default_backend())
     master_key = kdf.derive(kw.encode() + PEPPER)
     
-    # Derive round parameters (a, b for each round)
     rounds_params = []
     for i in range(ROUNDS):
         h = hashlib.sha256(master_key + i.to_bytes(4, 'big')).digest()
-        a = (int.from_bytes(h[:4], 'big') % 120) * 2 + 1 # Ensure odd for MOD 256
+        a = (int.from_bytes(h[:4], 'big') % 120) * 2 + 1 
         b = int.from_bytes(h[4:8], 'big') % 256
-        
-        # Create round permutation
         p_list = list(range(256))
         seed = int.from_bytes(h[8:16], 'big')
         import random
-        r = random.Random(seed) # Deterministic shuffle per round
+        r = random.Random(seed)
         r.shuffle(p_list)
         rounds_params.append({'a': a, 'b': b, 'p': p_list, 'inv_p': [p_list.index(j) for j in range(256)]})
-    
-    # Initialization Vector (derived from key for stability)
-    iv = int.from_bytes(hashlib.sha256(master_key + b"iv").digest()[:1], 'big')
-    return rounds_params, iv
+    return rounds_params
 
 def clear_everything():
     for k in ["lips", "chem", "hint"]: st.session_state[k] = ""
@@ -130,26 +124,26 @@ st.button("DESTROY CHEMISTRY", on_click=clear_everything)
 
 # --- 4. PROCESSING ---
 if kw and (kiss_btn or tell_btn):
-    params, iv = get_keys_and_perms(kw)
+    params = get_keys_and_perms(kw)
     
     if kiss_btn:
         data = user_input.encode('utf-8')
-        prev = iv
-        res_list = []
+        # Generate 4-byte nonce (32 bits of randomness)
+        nonce_bytes = [secrets.randbelow(256) for _ in range(4)]
+        
+        # Initialize mixing state with a hash of the nonce to spread entropy
+        prev = int.from_bytes(hashlib.sha256(bytes(nonce_bytes)).digest()[:1], 'big')
+        
+        # Attach nonce to result list
+        res_list = [to_emoji(b) for b in nonce_bytes]
         
         for byte in data:
-            # Position-dependent mixing (XOR)
             current = byte ^ prev
-            
-            # Multiple Rounds of Permute + Affine
             for r in range(ROUNDS):
-                # 1. Permute
                 current = params[r]['p'][current]
-                # 2. Affine
                 current = (params[r]['a'] * current + params[r]['b']) % 256
-            
             res_list.append(to_emoji(current))
-            prev = current # Feed-forward for next byte
+            prev = current
         
         res = " ".join(res_list)
         with output_placeholder.container():
@@ -159,25 +153,28 @@ if kw and (kiss_btn or tell_btn):
     if tell_btn:
         try:
             parts = [from_emoji(p) for p in user_input.split(" ") if p.strip()]
-            prev = iv
-            decoded_bytes = []
+            if len(parts) < 5: raise ValueError("Message too short (missing nonce)")
             
-            for current_cipher in parts:
+            # Extract 4-byte nonce
+            nonce_bytes = parts[:4]
+            ciphertext_payload = parts[4:]
+            
+            # Re-initialize the mixing state using the same nonce hash
+            prev = int.from_bytes(hashlib.sha256(bytes(nonce_bytes)).digest()[:1], 'big')
+            
+            decoded_bytes = []
+            for current_cipher in ciphertext_payload:
                 temp = current_cipher
-                # Reverse Rounds
                 for r in reversed(range(ROUNDS)):
-                    # 1. Reverse Affine
                     a_inv = pow(params[r]['a'], -1, 256)
                     temp = (a_inv * (temp - params[r]['b'])) % 256
-                    # 2. Reverse Permute
                     temp = params[r]['inv_p'][temp]
                 
-                # Reverse XOR
                 original_byte = temp ^ prev
                 decoded_bytes.append(original_byte)
                 prev = current_cipher
             
             decoded_msg = bytes(decoded_bytes).decode('utf-8')
             output_placeholder.markdown(f'<div class="whisper-text">Cypher Whispers: {decoded_msg}</div>', unsafe_allow_html=True)
-        except:
-            st.error("Chemistry Error! Key or formatting mismatch.")
+        except Exception as e:
+            st.error("Chemistry Error! Nonce mismatch or corrupted message.")
