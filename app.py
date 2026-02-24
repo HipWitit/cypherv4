@@ -20,64 +20,57 @@ st.markdown(f"""
     div[data-testid="stWidgetLabel"], label {{ display: none !important; }}
     .block-container {{ max-width: 100% !important; padding: 1rem !important; }}
 
-    /* Text Boxes */
+    /* Text Inputs */
     .stTextInput > div > div > input, 
     .stTextArea > div > div > textarea {{
         background-color: #FEE2E9 !important;
         color: #B4A7D6 !important; 
         border: 3px solid #B4A7D6 !important;
-        font-family: "Courier New", Courier, monospace !important;
+        font-family: "Courier New", monospace !important;
         font-size: 20px !important; 
         font-weight: 900 !important;
         border-radius: 15px !important;
         -webkit-text-fill-color: #B4A7D6 !important;
     }}
 
-    /* THE BUTTON MASTER FIX */
-    div[data-testid="stButton"] {{
+    /* BUTTON RESET: Force Full Width and Proper Height */
+    div[data-testid="stVerticalBlock"] div[data-testid="stButton"] {{
         width: 100% !important;
-        margin-bottom: 12px !important;
     }}
 
-    div[data-testid="stButton"] > button {{
+    /* Main Purple Buttons (KISS, TELL, DESTROY) */
+    div.stButton > button {{
         width: 100% !important;
-        height: 80px !important; /* Fixed height for consistent proportions */
+        min-height: 80px !important;
         background-color: #B4A7D6 !important; 
+        color: #FFD4E5 !important;
         border-radius: 20px !important;
         border: none !important;
-        box-shadow: 0px 6px 0px #9d8dbd !important; /* Thick "pop" shadow */
-        display: flex !important;
-        justify-content: center !important;
-        align-items: center !important;
-        transition: all 0.1s ease;
+        box-shadow: 0px 6px 0px #9d8dbd !important;
+        display: block !important;
+        margin: 10px 0px !important;
     }}
 
-    div[data-testid="stButton"] > button:active {{
-        transform: translateY(4px);
-        box-shadow: 0px 2px 0px #9d8dbd !important;
-    }}
-
-    div[data-testid="stButton"] > button p {{
-        color: #FFD4E5 !important;
-        font-size: 35px !important; 
+    /* Button Text Styling */
+    div.stButton > button p {{
+        font-size: 32px !important; 
         font-weight: 900 !important;
         text-transform: uppercase !important;
         font-family: "Arial Black", sans-serif !important;
-        margin: 0 !important;
-        line-height: 1 !important;
+        line-height: 1.5 !important;
     }}
 
-    /* Specific scaling for the long text on Destroy button */
-    div[data-testid="stVerticalBlock"] > div:nth-last-of-type(2) button p {{
-        font-size: 22px !important;
+    /* Specific scaling for DESTROY button so it doesn't wrap */
+    div.stButton:nth-of-type(3) > button p {{
+        font-size: 24px !important;
     }}
 
-    /* SHARE Button - Making it pop with a different shade */
-    div.stButton > button[kind="secondary"] {{
+    /* SHARE BUTTON: Pink Background, Purple Text */
+    div.stButton > button[key="share_btn"] {{
         background-color: #FFD4E5 !important;
         box-shadow: 0px 6px 0px #e0b8c8 !important;
     }}
-    div.stButton > button[kind="secondary"] p {{
+    div.stButton > button[key="share_btn"] p {{
         color: #B4A7D6 !important;
     }}
 
@@ -101,7 +94,12 @@ st.markdown(f"""
 
 # --- 2. ENGINE ---
 def to_emoji(val): return "".join(EMOJI_MAP.get(d, d) for d in str(val))
-def from_emoji(s): return int("".join(REV_MAP.get(c, v) for v in [s] for c in s if c in REV_MAP)) # Fix for split logic
+def from_emoji(s):
+    # Fixed emoji-to-digit conversion
+    res = ""
+    for char in s:
+        if char in REV_MAP: res += REV_MAP[char]
+    return int(res) if res else 0
 
 def get_params(kw):
     kdf = PBKDF2HMAC(algorithm=hashes.SHA256(), length=32, salt=b"uni_v5", iterations=100000, backend=default_backend())
@@ -121,9 +119,10 @@ st.text_input("Hint", key="hint", placeholder="KEY HINT (Optional)")
 if os.path.exists("Kiss Chemistry.png"): st.image("Kiss Chemistry.png", use_container_width=True)
 user_input = st.text_area("Message", height=120, key="chem", placeholder="YOUR MESSAGE")
 
-# Placeholder for Result area
+# Result Area Container
 result_spot = st.container()
 
+# Action Buttons
 kiss_btn = st.button("KISS")
 tell_btn = st.button("TELL")
 destroy_btn = st.button("DESTROY CHEMISTRY")
@@ -147,8 +146,8 @@ if kw and user_input:
     if output:
         with result_spot:
             st.markdown(f'<div class="result-box">{output}</div>', unsafe_allow_html=True)
-            # kind="secondary" helps us style it differently in CSS
-            st.button("SHARE ✨", key="share_btn", type="secondary")
+            # Share button with explicit key for pink styling
+            st.button("SHARE ✨", key="share_btn")
 
 if destroy_btn:
     for key in ["lips", "chem", "hint"]:
