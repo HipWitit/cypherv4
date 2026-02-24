@@ -20,58 +20,70 @@ st.markdown(f"""
     .stApp {{ background-color: #DBDCFF !important; }}
     div[data-testid="stWidgetLabel"], label {{ display: none !important; }}
 
-    /* Inputs */
+    /* TEXT BOX & INPUT FIXED COLORS */
     .stTextInput > div > div > input, 
     .stTextArea > div > div > textarea {{
         background-color: #FEE2E9 !important;
-        color: #B4A7D6 !important; 
+        color: #B4A7D6 !important; /* Explicit font color */
         border: 2px solid #B4A7D6 !important;
         font-family: "Courier New", monospace !important;
         font-size: 18px !important;
         font-weight: bold !important;
     }}
+    
+    /* Ensuring placeholder text is also visible */
+    input::placeholder, textarea::placeholder {{
+        color: #B4A7D6 !important;
+        opacity: 0.7;
+    }}
 
-    /* Key Strength Bar Color */
-    .stProgress > div > div > div > div {{ background-color: #B4A7D6 !important; }}
-
-    /* ACTION BUTTONS (KISS, TELL) - Matching V3 size */
+    /* ACTION BUTTONS (KISS, TELL) - FORCING RECTANGLE SHAPE */
     div.stButton > button {{
         width: 100% !important;
-        min-height: 100px !important; 
+        min-height: 110px !important; /* Increased height to stop squishing */
         background-color: #B4A7D6 !important; 
         color: #FFD4E5 !important;
-        border-radius: 15px !important;
+        border-radius: 20px !important;
         border: none !important;
-        box-shadow: 0px 4px 12px rgba(0,0,0,0.15);
+        box-shadow: 0px 6px 0px #9d8dbd !important;
         margin-top: 15px !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
     }}
 
     div.stButton > button p {{
         font-size: 38px !important; 
-        font-weight: 800 !important;
+        font-weight: 900 !important;
         text-transform: uppercase !important;
+        margin: 0 !important;
+    }}
+
+    /* DESTROY BUTTON - BOTTOM */
+    div.stButton:last-of-type > button {{
+        min-height: 80px !important;
+        background-color: #D1C4E9 !important;
+        box-shadow: 0px 4px 0px #b3a5cc !important;
+    }}
+    
+    div.stButton:last-of-type > button p {{
+        font-size: 24px !important;
     }}
 
     /* RESULT BOX */
     .result-box {{
         background-color: #FEE2E9; 
         color: #B4A7D6;
-        padding: 15px;
-        border-radius: 10px;
-        border: 2px solid #B4A7D6;
-        margin-top: 15px;
+        padding: 20px;
+        border-radius: 15px;
+        border: 3px solid #B4A7D6;
+        margin-top: 20px;
         font-weight: bold;
-        font-family: "Courier New", monospace;
+        font-family: monospace;
         text-align: center;
         word-break: break-all;
+        font-size: 22px;
     }}
-
-    /* DESTROY BUTTON */
-    div.stButton:last-of-type > button {{
-        min-height: 70px !important;
-        background-color: #D1C4E9 !important;
-    }}
-    div.stButton:last-of-type > button p {{ font-size: 24px !important; }}
     </style>
     """, unsafe_allow_html=True)
 
@@ -113,7 +125,7 @@ if os.path.exists("Lock Lips.png"): st.image("Lock Lips.png")
 
 kw = st.text_input("Key", type="password", key="lips", placeholder="SECRET KEY").strip()
 
-# RESTORED V3 STRENGTH BAR
+# Chemistry Level Bar
 if kw:
     strength = min((len(kw) / 12.0) + (0.1 if any(c.isdigit() for c in kw) else 0), 1.0)
     st.write(f"🧪 **CHEMISTRY LEVEL:** {int(strength*100)}%")
@@ -165,13 +177,18 @@ if kw and (kiss_btn or tell_btn):
                 def e_to_int(s):
                     s = "".join(rev_map.get(ch, ch) for ch in s)
                     return int(s.replace('🍭', '-').replace('🍬', '-'))
-                cx, cy = e_to_int(h_p.split(",")[0][::-1]), e_to_int(h_p.split(",")[1][::-1])
+                
+                parts = h_p.strip().split(",")
+                cx, cy = e_to_int(parts[0][::-1]), e_to_int(parts[1][::-1])
+                
                 inv_a, inv_b = (d_m * det_inv) % MOD, (-b_m * det_inv) % MOD
                 inv_c, inv_d = (-c_m * det_inv) % MOD, (a_m * det_inv) % MOD
                 def resolve(x, y): return chr(inv_sbox[(inv_a*x + inv_b*y)%MOD])
+                
                 decoded = [resolve(cx, cy)]
                 for i, m in enumerate(re.findall(r"\(([^)]+)\)", m_p)):
-                    dx, dy = (e_to_int(m.split(",")[0][::-1]), e_to_int(m.split(",")[1][::-1])) if (i+1)%2==0 else (e_to_int(m.split(",")[0]), e_to_int(m.split(",")[1]))
+                    dx_e, dy_e = m.split(",")
+                    dx, dy = (e_to_int(dx_e[::-1]), e_to_int(dy_e[::-1])) if (i+1)%2==0 else (e_to_int(dx_e), e_to_int(dy_e))
                     cx, cy = cx + dx, cy + dy
                     decoded.append(resolve(cx, cy))
                 res = "".join(decoded)
@@ -179,19 +196,19 @@ if kw and (kiss_btn or tell_btn):
 
         with output_placeholder.container():
             st.markdown(f'<div class="result-box">{res}</div>', unsafe_allow_html=True)
-            # THE PINK SHARE BUTTON (V4 style, V3 placement)
             components.html(f"""
                 <button onclick="navigator.share({{title:'Secret',text:`{res}\\n\\nHint: {hint_text}`}})" 
                 style="background-color:#FFD4E5; color:#B4A7D6; font-weight:bold; border-radius:20px; 
-                min-height:90px; width:100%; cursor:pointer; font-size: 30px; border:none; 
+                min-height:100px; width:100%; cursor:pointer; font-size: 32px; border:none; 
                 text-transform:uppercase; box-shadow: 0px 4px 12px rgba(0,0,0,0.15); font-family:sans-serif;">
                 SHARE ✨</button>
-            """, height=110)
+            """, height=130)
 
 # --- 5. DESTROY ---
 st.button("DESTROY CHEMISTRY", on_click=lambda: [st.session_state.update({k: ""}) for k in ["lips", "chem", "hint"]])
 
 if os.path.exists("LPB.png"):
     st.markdown('<div style="text-align:center; margin-top:40px;">', unsafe_allow_html=True)
-    st.image("LPB.png", width=200)
-    st.markdown('<div style="color:#B4A7D6; font-family:monospace; font-weight:bold; font-size:20px;">CREATED BY</div></div>', unsafe_allow_html=True)
+    st.image("LPB.png", width=250)
+    st.markdown('<div style="color:#B4A7D6; font-family:monospace; font-weight:bold; font-size:22px; margin-top:10px;">CREATED BY</div></div>', unsafe_allow_html=True)
+
