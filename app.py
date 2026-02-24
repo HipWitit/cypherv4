@@ -32,6 +32,8 @@ st.markdown(f"""
     <style>
     .stApp {{ background-color: #DBDCFF !important; }}
     div[data-testid="stWidgetLabel"], label {{ display: none !important; }}
+    
+    /* Inputs */
     .stTextInput input, .stTextArea textarea {{
         background-color: #FEE2E9 !important;
         color: #B4A7D6 !important; 
@@ -41,46 +43,57 @@ st.markdown(f"""
         border-radius: 15px !important;
         -webkit-text-fill-color: #B4A7D6 !important;
     }}
-    /* The only standard button we keep is Destroy */
+
+    /* Standard Streamlit Button (DESTROY) */
     div.stButton > button {{
-        width: 100% !important; height: 60px !important;
-        background-color: #B4A7D6 !important; color: #FFD4E5 !important;
-        border-radius: 20px !important; border: none !important;
-        margin-top: 20px;
+        width: 100% !important; 
+        height: 70px !important;
+        background-color: #B4A7D6 !important; 
+        color: #FFD4E5 !important;
+        border-radius: 20px !important; 
+        border: none !important;
+        box-shadow: 0px 6px 0px #9d8dbd !important;
+        margin-top: 10px !important;
+    }}
+    div.stButton > button p {{
+        font-size: 24px !important;
+        font-weight: 900 !important;
+        text-transform: uppercase !important;
+        font-family: "Arial Black", sans-serif !important;
     }}
     </style>
     """, unsafe_allow_html=True)
 
 # --- 3. UI LAYOUT ---
-if os.path.exists("CYPHER.png"): st.image("CYPHER.png", width=600)
-if os.path.exists("Lock Lips.png"): st.image("Lock Lips.png", width=600)
+if os.path.exists("CYPHER.png"): st.image("CYPHER.png", width='stretch')
+if os.path.exists("Lock Lips.png"): st.image("Lock Lips.png", width='stretch')
 
 kw = st.text_input("Key", type="password", key="lips", placeholder="SECRET KEY").strip()
 st.text_input("Hint", key="hint", placeholder="KEY HINT (Optional)")
 
-if os.path.exists("Kiss Chemistry.png"): st.image("Kiss Chemistry.png", width=600)
+if os.path.exists("Kiss Chemistry.png"): st.image("Kiss Chemistry.png", width='stretch')
 user_input = st.text_area("Message", height=120, key="chem", placeholder="YOUR MESSAGE")
 
-# --- 4. THE ACTION HUB (STAYS VISIBLE) ---
-# We calculate these values immediately so the HTML buttons always have data to work with
-if not kw: kw = " " # Prevents math errors if empty
-if not user_input: user_input = " "
+# --- 4. ACTION HUB ---
+# Calculation
+current_kw = kw if kw else " "
+current_msg = user_input if user_input else " "
 
-a, b = get_params(kw)
-kiss_res = "  ".join([to_emoji((a * ord(c) + b) % U_MOD) for c in user_input])
+a, b = get_params(current_kw)
+kiss_res = "  ".join([to_emoji((a * ord(c) + b) % U_MOD) for c in current_msg])
 
 try:
     a_inv = pow(a, -1, U_MOD)
-    parts = [p.strip() for p in user_input.split("  ") if p.strip()]
+    parts = [p.strip() for p in current_msg.split("  ") if p.strip()]
     tell_res = "".join(chr((a_inv * (from_emoji(p) - b)) % U_MOD) for p in parts)
 except:
     tell_res = "Waiting for correct emojis..."
 
-# These buttons are HARD CODED. They will not disappear.
+# The Bridge Component
 components.html(f"""
     <style>
         .btn {{
-            width: 100%; height: 85px; margin-bottom: 12px;
+            width: 100%; height: 85px; margin-bottom: 15px;
             border-radius: 22px; border: none; font-weight: 900;
             font-family: "Arial Black", sans-serif; font-size: 32px;
             text-transform: uppercase; cursor: pointer;
@@ -88,7 +101,12 @@ components.html(f"""
             box-shadow: 0px 6px 0px #9d8dbd;
         }}
         .purple {{ background-color: #B4A7D6; color: #FFD4E5; }}
-        .pink {{ background-color: #FFD4E5; color: #B4A7D6; box-shadow: 0px 6px 0px #e0b8c8; }}
+        /* FIXED SHARE COLOR: Pink Background, Purple Text */
+        .pink {{ 
+            background-color: #FFD4E5 !important; 
+            color: #B4A7D6 !important; 
+            box-shadow: 0px 6px 0px #e0b8c8 !important; 
+        }}
         .res-box {{
             background-color: #FEE2E9; color: #B4A7D6; padding: 20px;
             border-radius: 20px; border: 4px solid #B4A7D6;
@@ -128,7 +146,10 @@ components.html(f"""
     </script>
 """, height=500)
 
+# --- 5. MOVED DESTROY BUTTON ---
 if st.button("DESTROY CHEMISTRY"):
+    for k in ["lips", "chem", "hint"]:
+        if k in st.session_state: st.session_state[k] = ""
     st.rerun()
 
-if os.path.exists("LPB.png"): st.image("LPB.png", width=600)
+if os.path.exists("LPB.png"): st.image("LPB.png", width='stretch')
