@@ -17,20 +17,24 @@ REV_MAP = {v: k for k, v in EMOJI_MAP.items()}
 
 st.markdown(f"""
     <style>
-    /* Main App Background */
+    /* 1. Main Background */
     .stApp {{ background-color: #DBDCFF !important; }}
     
-    /* Ensure the container allows full width on mobile */
-    .block-container {{
-        max-width: 100% !important;
-        padding-left: 1rem !important;
-        padding-right: 1rem !important;
+    /* 2. FORCE FULL WIDTH ON EVERY ELEMENT */
+    [data-testid="column"], [data-testid="stVerticalBlock"], .element-container {{
+        width: 100% !important;
     }}
 
-    /* Hide Labels */
+    .block-container {{
+        max-width: 100% !important;
+        padding-left: 0.8rem !important;
+        padding-right: 0.8rem !important;
+    }}
+
+    /* 3. Hide Labels */
     div[data-testid="stWidgetLabel"], label {{ display: none !important; }}
 
-    /* Input Boxes: Edge-to-Edge Bold Purple */
+    /* 4. Input Boxes */
     .stTextInput > div > div > input, 
     .stTextArea > div > div > textarea {{
         background-color: #FEE2E9 !important;
@@ -43,48 +47,56 @@ st.markdown(f"""
         border-radius: 15px !important;
     }}
 
-    /* THE STRETCH FIX: Force the button and its wrapper to 100% */
-    div[data-testid="stButton"], 
+    /* 5. THE "ULTIMATE STRETCH" BUTTON FIX */
+    div[data-testid="stButton"] {{
+        width: 100% !important;
+        text-align: center !important;
+    }}
+
     div[data-testid="stButton"] > button {{
         width: 100% !important;
-        display: block !important;
-    }}
-
-    div[data-testid="stButton"] > button {{
         background-color: #B4A7D6 !important; 
         border-radius: 25px !important;
-        height: 110px !important; 
+        height: 100px !important; 
         border: none !important;
-        margin-top: 15px !important;
+        margin-top: 10px !important;
         box-shadow: 0px 8px 15px rgba(0,0,0,0.2) !important;
+        display: flex !important;
+        justify-content: center !important;
+        align-items: center !important;
     }}
 
-    /* Giant Bold Pink Text targeting the internal paragraph */
+    /* Massive Text for Main Buttons */
     div[data-testid="stButton"] > button p {{
         color: #FFD4E5 !important;
-        font-size: 55px !important; 
+        font-size: 48px !important; 
         font-weight: 900 !important;
         text-transform: uppercase !important;
         font-family: "Arial Black", Gadget, sans-serif !important;
+        line-height: 1.1 !important;
     }}
 
-    /* Scale down the Destroy button text slightly so it doesn't wrap */
-    div[data-testid="stButton"]:nth-of-type(3) > button p {{
-        font-size: 30px !important;
+    /* Adjustment for the longer Destroy button text */
+    div[data-testid="stButton"]:last-of-type > button {{
+        height: 80px !important;
+    }}
+    div[data-testid="stButton"]:last-of-type > button p {{
+        font-size: 26px !important;
+        letter-spacing: 1px !important;
     }}
 
     /* Result Box Style */
     .result-box {{
         background-color: #FEE2E9; 
         color: #B4A7D6 !important;
-        padding: 25px;
+        padding: 20px;
         border-radius: 15px;
         border: 3px solid #B4A7D6;
         word-wrap: break-word;
         font-weight: 900;
         font-family: "Courier New", Courier, monospace !important;
-        font-size: 22px;
-        margin-top: 25px;
+        font-size: 20px;
+        margin-top: 15px;
         width: 100%;
     }}
     </style>
@@ -117,7 +129,7 @@ st.text_input("Hint", key="hint", placeholder="KEY HINT (Optional)")
 if os.path.exists("Kiss Chemistry.png"): st.image("Kiss Chemistry.png", use_container_width=True)
 user_input = st.text_area("Message", height=150, key="chem", placeholder="YOUR MESSAGE")
 
-# Button stacking
+# Buttons
 kiss_btn = st.button("KISS")
 tell_btn = st.button("TELL")
 
@@ -145,3 +157,4 @@ if kw and user_input:
             st.error("Chemistry Error! Check key or format.")
 
 if os.path.exists("LPB.png"): st.image("LPB.png", use_container_width=True)
+
