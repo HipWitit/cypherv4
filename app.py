@@ -5,7 +5,7 @@ from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.backends import default_backend
 
-# --- 1. CONFIG & REFINED CSS ---
+# --- 1. CONFIG ---
 st.set_page_config(page_title="Cyfer Pro", layout="centered")
 
 raw_pepper = st.secrets.get("MY_SECRET_PEPPER") or "global_unicode_spice_2026"
@@ -18,15 +18,16 @@ REV_MAP = {v: k for k, v in EMOJI_MAP.items()}
 if "result_output" not in st.session_state:
     st.session_state.result_output = ""
 
+# --- 2. THE NUCLEAR CSS OPTION ---
+# This forces every button to 90px height and full width, no matter what.
 st.markdown(f"""
     <style>
     .stApp {{ background-color: #DBDCFF !important; }}
     div[data-testid="stWidgetLabel"], label {{ display: none !important; }}
     .block-container {{ max-width: 100% !important; padding: 1rem !important; }}
 
-    /* Inputs */
-    .stTextInput > div > div > input, 
-    .stTextArea > div > div > textarea {{
+    /* Force Inputs */
+    .stTextInput input, .stTextArea textarea {{
         background-color: #FEE2E9 !important;
         color: #B4A7D6 !important; 
         border: 3px solid #B4A7D6 !important;
@@ -36,38 +37,40 @@ st.markdown(f"""
         -webkit-text-fill-color: #B4A7D6 !important;
     }}
 
-    /* BUTTONS: Force Huge Full-Width Blocks */
-    div[data-testid="stButton"] {{
-        width: 100% !important;
-    }}
-
-    div.stButton > button {{
+    /* THE BUTTON NUCLEAR FIX */
+    /* Target every button in the app to be identical in size */
+    button[kind="secondary"], button[kind="primary"] {{
         width: 100% !important;
         height: 90px !important;
+        min-height: 90px !important;
+        max-height: 90px !important;
         background-color: #B4A7D6 !important; 
         color: #FFD4E5 !important;
         border-radius: 20px !important;
         border: none !important;
         box-shadow: 0px 6px 0px #9d8dbd !important;
+        margin-bottom: 15px !important;
         display: flex !important;
-        justify-content: center !important;
         align-items: center !important;
-        margin-top: 10px !important;
+        justify-content: center !important;
     }}
 
-    div.stButton > button p {{
+    /* Force text style inside all buttons */
+    button p {{
         font-size: 32px !important; 
         font-weight: 900 !important;
         text-transform: uppercase !important;
         font-family: "Arial Black", sans-serif !important;
+        color: #FFD4E5 !important;
     }}
 
-    /* SHARE BUTTON: Pink Style */
-    div.stButton > button[key="share_btn_trigger"] {{
+    /* UNIQUE STYLE FOR SHARE (Pink) */
+    /* We target this using the specific key later */
+    div[data-testid="stButton"] button[key="share_btn_trigger"] {{
         background-color: #FFD4E5 !important;
         box-shadow: 0px 6px 0px #e0b8c8 !important;
     }}
-    div.stButton > button[key="share_btn_trigger"] p {{
+    div[data-testid="stButton"] button[key="share_btn_trigger"] p {{
         color: #B4A7D6 !important;
     }}
 
@@ -82,31 +85,35 @@ st.markdown(f"""
         font-weight: 900;
         font-family: "Courier New", monospace !important;
         font-size: 22px;
-        margin-bottom: 15px;
+        margin-bottom: 20px;
         text-align: center;
         -webkit-text-fill-color: #B4A7D6 !important;
     }}
     </style>
     """, unsafe_allow_html=True)
 
-# --- JavaScript for Native Sharing ---
-def trigger_native_share(text):
-    js = f"""
-    <script>
-    if (navigator.share) {{
-        navigator.share({{
-            title: 'Cyfer Message',
-            text: '{text}'
-        }}).catch(console.error);
-    }} else {{
-        navigator.clipboard.writeText('{text}');
-        alert('Copied to clipboard!');
-    }}
-    </script>
-    """
-    components.html(js, height=0)
+# --- 3. THE NATIVE SHARE COMPONENT ---
+def trigger_share(text_to_share):
+    # This creates a hidden JS bridge to open the native share menu
+    components.html(
+        f"""
+        <script>
+        const shareData = {{
+            title: 'My Cyfer Message',
+            text: '{text_to_share}'
+        }};
+        if (navigator.share) {{
+            navigator.share(shareData).catch((err) => console.log(err));
+        }} else {{
+            navigator.clipboard.writeText('{text_to_share}');
+            alert('Share menu not supported on this browser - Message Copied!');
+        }}
+        </script>
+        """,
+        height=0,
+    )
 
-# --- 2. ENGINE ---
+# --- 4. ENGINE ---
 def to_emoji(val): return "".join(EMOJI_MAP.get(d, d) for d in str(val))
 def from_emoji(s):
     res = "".join(REV_MAP[char] for char in s if char in REV_MAP)
@@ -114,51 +121,4 @@ def from_emoji(s):
 
 def get_params(kw):
     kdf = PBKDF2HMAC(algorithm=hashes.SHA256(), length=32, salt=b"uni_v5", iterations=100000, backend=default_backend())
-    seed = int.from_bytes(hashlib.sha256(kdf.derive((kw + PEPPER).encode())).digest(), 'big')
-    rng = random.Random(seed)
-    a = rng.randint(3, 100000)
-    while math.gcd(a, U_MOD) != 1: a += 1 
-    return a, rng.randint(1000, 900000)
-
-# --- 3. UI LAYOUT ---
-if os.path.exists("CYPHER.png"): st.image("CYPHER.png", width=600)
-if os.path.exists("Lock Lips.png"): st.image("Lock Lips.png", width=600)
-
-kw = st.text_input("Key", type="password", key="lips", placeholder="SECRET KEY").strip()
-st.text_input("Hint", key="hint", placeholder="KEY HINT (Optional)")
-
-if os.path.exists("Kiss Chemistry.png"): st.image("Kiss Chemistry.png", width=600)
-user_input = st.text_area("Message", height=120, key="chem", placeholder="YOUR MESSAGE")
-
-# Placeholder for Result/Share area
-result_container = st.container()
-
-# Full-width buttons (No columns, so they stay big)
-kiss_btn = st.button("KISS")
-tell_btn = st.button("TELL")
-
-if kw and user_input:
-    a, b = get_params(kw)
-    if kiss_btn:
-        encoded = [to_emoji((a * ord(c) + b) % U_MOD) for c in user_input]
-        st.session_state.result_output = "  ".join(encoded)
-    if tell_btn:
-        try:
-            a_inv = pow(a, -1, U_MOD)
-            parts = [p.strip() for p in user_input.split("  ") if p.strip()]
-            st.session_state.result_output = "".join(chr((a_inv * (from_emoji(p) - b)) % U_MOD) for p in parts)
-        except:
-            st.error("Error!")
-
-if st.session_state.result_output:
-    with result_container:
-        st.markdown(f'<div class="result-box">{st.session_state.result_output}</div>', unsafe_allow_html=True)
-        if st.button("SHARE ✨", key="share_btn_trigger"):
-            trigger_native_share(st.session_state.result_output)
-
-if st.button("DESTROY CHEMISTRY"):
-    st.session_state.result_output = ""
-    for k in ["lips", "chem", "hint"]: st.session_state[k] = ""
-    st.rerun()
-
-if os.path.exists("LPB.png"): st.image("LPB.png", width=600)
+    seed = int.from_bytes(hashlib.sha256(kdf.derive((kw
