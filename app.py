@@ -17,21 +17,20 @@ REV_MAP = {v: k for k, v in EMOJI_MAP.items()}
 
 st.markdown(f"""
     <style>
-    /* 1. ELIMINATE ALL PADDING & CENTER ALIGNMENT ISSUES */
+    /* Main App Background */
+    .stApp {{ background-color: #DBDCFF !important; }}
+    
+    /* Ensure the container allows full width on mobile */
     .block-container {{
-        padding-top: 1rem !important;
-        padding-left: 0.5rem !important;
-        padding-right: 0.5rem !important;
         max-width: 100% !important;
+        padding-left: 1rem !important;
+        padding-right: 1rem !important;
     }}
 
-    /* Hide top bar for app feel */
-    header, footer {{visibility: hidden !important;}}
-
-    .stApp {{ background-color: #DBDCFF !important; }}
+    /* Hide Labels */
     div[data-testid="stWidgetLabel"], label {{ display: none !important; }}
 
-    /* 2. Input Boxes: Bold & Clear */
+    /* Input Boxes: Edge-to-Edge Bold Purple */
     .stTextInput > div > div > input, 
     .stTextArea > div > div > textarea {{
         background-color: #FEE2E9 !important;
@@ -44,54 +43,48 @@ st.markdown(f"""
         border-radius: 15px !important;
     }}
 
-    /* 3. THE "STRETCH" FIX: Target the container of the button */
-    div.stButton {{
+    /* THE STRETCH FIX: Force the button and its wrapper to 100% */
+    div[data-testid="stButton"], 
+    div[data-testid="stButton"] > button {{
         width: 100% !important;
+        display: block !important;
     }}
 
-    div.stButton > button {{
-        width: 100% !important;
+    div[data-testid="stButton"] > button {{
         background-color: #B4A7D6 !important; 
-        border-radius: 20px !important;
-        height: 100px !important; 
+        border-radius: 25px !important;
+        height: 110px !important; 
         border: none !important;
-        margin-top: 10px !important;
-        box-shadow: 0px 6px 12px rgba(0,0,0,0.15) !important;
-        
-        /* Force text to center and be massive */
-        display: flex !important;
-        justify-content: center !important;
-        align-items: center !important;
+        margin-top: 15px !important;
+        box-shadow: 0px 8px 15px rgba(0,0,0,0.2) !important;
     }}
 
-    /* Target the text element specifically */
-    div.stButton > button p {{
+    /* Giant Bold Pink Text targeting the internal paragraph */
+    div[data-testid="stButton"] > button p {{
         color: #FFD4E5 !important;
-        font-size: 50px !important; 
+        font-size: 55px !important; 
         font-weight: 900 !important;
         text-transform: uppercase !important;
-        margin: 0 !important;
-        padding: 0 !important;
-        line-height: 1 !important;
+        font-family: "Arial Black", Gadget, sans-serif !important;
     }}
 
-    /* Smaller text for Destroy button so it fits */
-    div.stButton:last-of-type > button p {{
-        font-size: 28px !important;
+    /* Scale down the Destroy button text slightly so it doesn't wrap */
+    div[data-testid="stButton"]:nth-of-type(3) > button p {{
+        font-size: 30px !important;
     }}
 
     /* Result Box Style */
     .result-box {{
         background-color: #FEE2E9; 
         color: #B4A7D6 !important;
-        padding: 20px;
+        padding: 25px;
         border-radius: 15px;
         border: 3px solid #B4A7D6;
         word-wrap: break-word;
         font-weight: 900;
         font-family: "Courier New", Courier, monospace !important;
-        font-size: 20px;
-        margin-top: 15px;
+        font-size: 22px;
+        margin-top: 25px;
         width: 100%;
     }}
     </style>
@@ -124,7 +117,7 @@ st.text_input("Hint", key="hint", placeholder="KEY HINT (Optional)")
 if os.path.exists("Kiss Chemistry.png"): st.image("Kiss Chemistry.png", use_container_width=True)
 user_input = st.text_area("Message", height=150, key="chem", placeholder="YOUR MESSAGE")
 
-# We stack them one by one to avoid column-shrinkage
+# Button stacking
 kiss_btn = st.button("KISS")
 tell_btn = st.button("TELL")
 
