@@ -5,7 +5,7 @@ from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.backends import default_backend
 
-# --- 1. APP CONFIG ---
+# --- 1. CONFIG ---
 st.set_page_config(page_title="Cyfer Pro", layout="centered")
 
 raw_pepper = st.secrets.get("MY_SECRET_PEPPER") or "global_unicode_spice_2026"
@@ -18,7 +18,7 @@ REV_MAP = {v: k for k, v in EMOJI_MAP.items()}
 if "result_output" not in st.session_state:
     st.session_state.result_output = ""
 
-# --- 2. THE CSS OVERRIDE ---
+# --- 2. GLOBAL CSS OVERRIDE ---
 st.markdown(f"""
     <style>
     .stApp {{ background-color: #DBDCFF !important; }}
@@ -36,42 +36,37 @@ st.markdown(f"""
         -webkit-text-fill-color: #B4A7D6 !important;
     }}
 
-    /* THE NUCLEAR BUTTON FIX: Uniform size for ALL buttons */
+    /* THE BUTTON FIX: Force 100% width and 90px height globally */
     button {{
         width: 100% !important;
         height: 90px !important;
         min-height: 90px !important;
         background-color: #B4A7D6 !important; 
+        color: #FFD4E5 !important;
         border-radius: 20px !important;
         border: none !important;
         box-shadow: 0px 6px 0px #9d8dbd !important;
-        margin-top: 10px !important;
-        margin-bottom: 10px !important;
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
+        margin-bottom: 15px !important;
     }}
 
     button p {{
-        color: #FFD4E5 !important;
-        font-size: 28px !important; 
+        font-size: 32px !important; 
         font-weight: 900 !important;
         text-transform: uppercase !important;
         font-family: "Arial Black", sans-serif !important;
+        color: #FFD4E5 !important;
     }}
 
-    /* Specific scaling for DESTROY button text */
-    button[data-testid="baseButton-secondary"]:last-child p {{
-        font-size: 22px !important;
-    }}
-
-    /* PINK SHARE BUTTON OVERRIDE */
-    /* We use a specific CSS selector to find the SHARE button */
-    div[data-testid="stButton"] button:has(div p:contains("SHARE")) {{
+    /* CUSTOM PINK FOR SHARE */
+    /* Target the button based on the text content */
+    button:has(p:contains("SHARE")) {{
         background-color: #FFD4E5 !important;
         box-shadow: 0px 6px 0px #e0b8c8 !important;
     }}
-    div[data-testid="stButton"] button:has(div p:contains("SHARE")) p {{
+    button:has(p:contains("SHARE")) p {{
         color: #B4A7D6 !important;
     }}
 
@@ -86,29 +81,33 @@ st.markdown(f"""
         font-weight: 900;
         font-family: "Courier New", monospace !important;
         font-size: 22px;
-        margin-bottom: 15px;
+        margin-bottom: 20px;
         text-align: center;
         -webkit-text-fill-color: #B4A7D6 !important;
     }}
     </style>
     """, unsafe_allow_html=True)
 
-# --- 3. NATIVE SHARE SCRIPT ---
-def trigger_share(text):
-    js_code = f"""
-    <script>
-    if (navigator.share) {{
-        navigator.share({{
+# --- 3. NATIVE SHARE BRIDGE ---
+def trigger_share(text_to_share):
+    # This JS runs in the browser to trigger the actual phone share menu
+    components.html(
+        f"""
+        <script>
+        const shareData = {{
             title: 'Cyfer Message',
-            text: '{text}'
-        }}).catch(console.error);
-    }} else {{
-        navigator.clipboard.writeText('{text}');
-        alert('Copied to clipboard!');
-    }}
-    </script>
-    """
-    components.html(js_code, height=0)
+            text: '{text_to_share}'
+        }};
+        if (navigator.share) {{
+            navigator.share(shareData).catch((err) => console.log(err));
+        }} else {{
+            navigator.clipboard.writeText('{text_to_share}');
+            alert('Share menu not supported - Message Copied to Clipboard!');
+        }}
+        </script>
+        """,
+        height=0,
+    )
 
 # --- 4. ENGINE ---
 def to_emoji(val): return "".join(EMOJI_MAP.get(d, d) for d in str(val))
@@ -134,8 +133,8 @@ st.text_input("Hint", key="hint", placeholder="KEY HINT (Optional)")
 if os.path.exists("Kiss Chemistry.png"): st.image("Kiss Chemistry.png", width='stretch')
 user_input = st.text_area("Message", height=120, key="chem", placeholder="YOUR MESSAGE")
 
-# Result Spot (above buttons)
-res_container = st.container()
+# The space where the result and share button appear
+res_spot = st.container()
 
 # Action Buttons
 kiss = st.button("KISS")
@@ -154,8 +153,9 @@ if kw and user_input:
         except:
             st.error("Error!")
 
+# Memory-based Result Display
 if st.session_state.result_output:
-    with res_container:
+    with res_spot:
         st.markdown(f'<div class="result-box">{st.session_state.result_output}</div>', unsafe_allow_html=True)
         if st.button("SHARE ✨"):
             trigger_share(st.session_state.result_output)
