@@ -3,19 +3,18 @@ import re
 import os
 import random
 import hashlib
-import base64
+import math
 import streamlit.components.v1 as components
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.backends import default_backend
 
-# --- 1. CONFIG & STYLING ---
+# --- 1. CONFIG & STYLING (The Sacred Layout) ---
 st.set_page_config(page_title="Cyfer Pro: Secret Language", layout="centered")
 
-# Ensure this secret is set in your Streamlit Cloud settings
-raw_pepper = st.secrets.get("MY_SECRET_PEPPER") or "default_fallback_spice_2026"
+raw_pepper = st.secrets.get("MY_SECRET_PEPPER") or "global_unicode_spice_2026"
 PEPPER = str(raw_pepper)
-MOD = 127 
+U_MOD = 1114112 
 
 st.markdown(f"""
     <style>
@@ -74,6 +73,7 @@ st.markdown(f"""
         word-wrap: break-word;
         margin-top: 15px;
         font-weight: bold;
+        text-align: center;
     }}
 
     .whisper-text {{
@@ -84,6 +84,7 @@ st.markdown(f"""
         margin-top: 20px;
         border-top: 2px dashed #B4A7D6;
         padding-top: 15px;
+        text-align: center;
     }}
 
     .custom-footer {{
@@ -107,37 +108,22 @@ st.markdown(f"""
     </style>
     """, unsafe_allow_html=True)
 
-# --- 2. THE STABILIZED ENGINE ---
-EMOJI_MAP = {'1': '🦄', '2': '🍼', '3': '🩷', '4': '🧸', '5': '🎀', '6': '🍓', '7': '🌈', '8': '🌸', '9': '💕', '0': '🫐'}
+# --- 2. THE AFFINE ENGINE ---
+EMOJI_MAP = {'0':'🦄','1':'🍼','2':'🩷','3':'🧸','4':'🎀','5':'🍓','6':'🌈','7':'🌸','8':'💕','9':'🫐'}
+REV_MAP = {v: k for k, v in EMOJI_MAP.items()}
 
-def get_char_coord(char):
-    val = ord(char) % MOD
-    return (val, (val * 7) % MOD)
+def to_emoji(val): return "".join(EMOJI_MAP.get(d, d) for d in str(val))
+def from_emoji(s):
+    res = "".join(REV_MAP[char] for char in s if char in REV_MAP)
+    return int(res) if res else 0
 
-def get_fernet_sbox(kw):
-    kdf = PBKDF2HMAC(
-        algorithm=hashes.SHA256(), length=32, salt=b"stable_sbox_salt_v4",
-        iterations=100000, backend=default_backend()
-    )
-    derived_key = kdf.derive((kw + PEPPER).encode())
-    seed_int = int.from_bytes(hashlib.sha256(derived_key + b"chemistry_fix").digest(), 'big')
-    rng = random.Random(seed_int)
-    sbox = list(range(MOD))
-    rng.shuffle(sbox)
-    return sbox, [sbox.index(i) for i in range(MOD)]
-
-def get_matrix_elements(kw):
-    kdf = PBKDF2HMAC(algorithm=hashes.SHA256(), length=4, salt=b"matrix_salt_v4", iterations=100000, backend=default_backend())
-    a, b, c, d = list(kdf.derive((kw + PEPPER).encode()))
-    return (a % 100 + 2, b % 100 + 1, c % 100 + 1, d % 100 + 2)
-
-def apply_sweet_parity(val_str):
-    return re.sub(r'(-)(\d)', lambda m: ('🍭' if int(m.group(2)) % 2 == 0 else '🍬') + m.group(2), val_str)
-
-def modInverse(n, m=MOD):
-    for x in range(1, m):
-        if (((n % m) * (x % m)) % m == 1): return x
-    return None
+def get_params(kw):
+    kdf = PBKDF2HMAC(algorithm=hashes.SHA256(), length=32, salt=b"uni_v5_stable", iterations=100000, backend=default_backend())
+    seed = int.from_bytes(hashlib.sha256(kdf.derive((kw + PEPPER).encode())).digest(), 'big')
+    rng = random.Random(seed)
+    a = rng.randint(3, 100000)
+    while math.gcd(a, U_MOD) != 1: a += 1 
+    return a, rng.randint(1000, 900000)
 
 def clear_everything():
     for k in ["lips", "chem", "hint"]: st.session_state[k] = ""
@@ -174,60 +160,21 @@ st.markdown('</div>', unsafe_allow_html=True)
 
 # --- 4. PROCESSING ---
 if kw and (kiss_btn or tell_btn):
-    a, b, c, d = get_matrix_elements(kw)
-    det = (a * d - b * c) % MOD
-    det_inv = modInverse(det)
-    sbox, inv_sbox = get_fernet_sbox(kw)
+    a, b = get_params(kw)
     
-    if det_inv:
-        if kiss_btn:
-            points = []
-            for char in user_input:
-                x_raw, y_raw = get_char_coord(char)
-                x, y = sbox[x_raw], sbox[y_raw]
-                nx, ny = (a*x + b*y) % MOD, (c*x + d*y) % MOD
-                points.append((nx, ny))
-            
-            if points:
-                def e_map(v): return "".join(EMOJI_MAP.get(digit, digit) for digit in apply_sweet_parity(str(v)))
-                header = f"{e_map(points[0][0])[::-1]},{e_map(points[0][1])[::-1]}"
-                m_list = []
-                for i in range(len(points)-1):
-                    dx_v, dy_v = points[i+1][0]-points[i][0], points[i+1][1]-points[i][1]
-                    dx, dy = e_map(dx_v), e_map(dy_v)
-                    m_list.append(f"({dx[::-1]},{dy[::-1]})" if (i+1)%2==0 else f"({dx},{dy})")
-                
-                res = f"{header} | MOVES: {' '.join(m_list)}"
-                with output_placeholder.container():
-                    st.markdown(f'<div class="result-box">{res}</div>', unsafe_allow_html=True)
-                    components.html(f"""<button onclick="navigator.share({{title:'Secret',text:`{res}\\n\\nHint: {hint_text}`}})" style="background-color:#B4A7D6; color:#FFD4E5; font-weight:bold; border-radius:15px; min-height:80px; width:100%; cursor:pointer; font-size: 28px; border:none; text-transform:uppercase;">SHARE ✨</button>""", height=100)
+    if kiss_btn:
+        res = "  ".join([to_emoji((a * ord(c) + b) % U_MOD) for c in user_input])
+        with output_placeholder.container():
+            st.markdown(f'<div class="result-box">{res}</div>', unsafe_allow_html=True)
+            components.html(f"""<button onclick="navigator.share({{title:'Secret',text:`{res}\\n\\nHint: {hint_text}`}})" style="background-color:#B4A7D6; color:#FFD4E5; font-weight:bold; border-radius:15px; min-height:80px; width:100%; cursor:pointer; font-size: 28px; border:none; text-transform:uppercase;">SHARE ✨</button>""", height=100)
 
-        if tell_btn:
-            try:
-                clean_in = user_input.split("Hint:")[0].strip()
-                h_part, m_part = clean_in.split("|")
-                rev_map = {v: k for k, v in EMOJI_MAP.items()}
-                def e_to_m(s):
-                    s = "".join(rev_map.get(ch, ch) for ch in s)
-                    return int(s.replace('🍭', '-').replace('🍬', '-'))
-
-                hx_e, hy_e = h_part.strip().split(",")
-                curr_x, curr_y = e_to_m(hx_e[::-1]), e_to_m(hy_e[::-1])
-                inv_a, inv_b = (d * det_inv) % MOD, (-b * det_inv) % MOD
-                inv_c, inv_d = (-c * det_inv) % MOD, (a * det_inv) % MOD
-                
-                def resolve(cx, cy):
-                    ux_s, uy_s = (inv_a * cx + inv_b * cy) % MOD, (inv_c * cx + inv_d * cy) % MOD
-                    return chr(inv_sbox[ux_s])
-
-                decoded = [resolve(curr_x, curr_y)]
-                moves = re.findall(r"\(([^)]+)\)", m_part)
-                for i, m in enumerate(moves):
-                    dx_e, dy_e = m.split(",")
-                    dx, dy = (e_to_m(dx_e[::-1]), e_to_m(dy_e[::-1])) if (i+1)%2==0 else (e_to_int(dx_e), e_to_int(dy_e))
-                    curr_x, curr_y = curr_x + dx, curr_y + dy
-                    decoded.append(resolve(curr_x, curr_y))
-                
-                output_placeholder.markdown(f'<div class="whisper-text">Cypher Whispers: {"".join(decoded)}</div>', unsafe_allow_html=True)
-            except: st.error("Chemistry Error!")
-    else: st.error("Matrix Unstable!")
+    if tell_btn:
+        try:
+            a_inv = pow(a, -1, U_MOD)
+            # Remove "Hint:" parts if accidentally pasted
+            clean_in = user_input.split("Hint:")[0].strip()
+            parts = [p.strip() for p in clean_in.split("  ") if p.strip()]
+            decoded = "".join(chr((a_inv * (from_emoji(p) - b)) % U_MOD) for p in parts)
+            output_placeholder.markdown(f'<div class="whisper-text">Cypher Whispers: {decoded}</div>', unsafe_allow_html=True)
+        except:
+            st.error("Chemistry Error! The key or message format is incorrect.")
