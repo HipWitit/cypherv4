@@ -1,80 +1,55 @@
 import streamlit as st
-import re, os, random, hashlib, base64, math
-import streamlit.components.v1 as components
+import re, os, random, hashlib, math
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.backends import default_backend
 
-# --- 1. CONFIG & AGGRESSIVE MOBILE-FIRST STYLING ---
+# --- 1. CONFIG & AGGRESSIVE CSS ---
 st.set_page_config(page_title="Cyfer Pro", layout="centered")
 
 raw_pepper = st.secrets.get("MY_SECRET_PEPPER") or "global_unicode_spice_2026"
 PEPPER = str(raw_pepper)
 U_MOD = 1114112 
 
-# Mapping digits to your custom emojis
+# Custom Emoji Map
 EMOJI_MAP = {'0':'🦄','1':'🍼','2':'🩷','3':'🧸','4':'🎀','5':'🍓','6':'🌈','7':'🌸','8':'💕','9':'🫐'}
 REV_MAP = {v: k for k, v in EMOJI_MAP.items()}
 
 st.markdown(f"""
     <style>
-    /* Main Background */
+    /* Background and Label Removal */
     .stApp {{ background-color: #DBDCFF !important; }}
-    
-    /* Hide Default Labels */
     div[data-testid="stWidgetLabel"], label {{ display: none !important; }}
 
-    /* Force Vertical Stacking for everything */
-    [data-testid="column"] {{
-        width: 100% !important;
-        flex: 1 1 100% !important;
-        min-width: 100% !important;
-        padding: 0px !important;
-    }}
-    
-    div[data-testid="stHorizontalBlock"] {{
-        flex-direction: column !important;
-    }}
-
-    /* Text Input Styling: Pink Box, Bold Purple Text */
+    /* Fix Input Box Text: Bold Purple on Pink */
     .stTextInput > div > div > input, 
     .stTextArea > div > div > textarea {{
         background-color: #FEE2E9 !important;
         color: #B4A7D6 !important; 
         border: 3px solid #B4A7D6 !important;
         font-family: "Courier New", Courier, monospace !important;
-        font-size: 22px !important;
+        font-size: 20px !important;
         font-weight: 900 !important;
         -webkit-text-fill-color: #B4A7D6 !important;
         border-radius: 15px !important;
     }}
 
-    /* THE BUTTONS: GIANT AND FULL WIDTH */
-    .stButton > button {{
+    /* THE BUTTONS: GIANT AND STRETCHED */
+    div.stButton > button {{
         background-color: #B4A7D6 !important; 
         color: #FFD4E5 !important;
-        border-radius: 25px !important;
-        height: 100px !important; /* Extremely tall */
-        width: 100% !important;   /* Full width of screen */
-        border: none !important;
-        text-transform: uppercase;
-        font-size: 42px !important; /* Massive font */
+        border-radius: 20px !important;
+        height: 100px !important;      /* Extra Tall */
+        width: 100% !important;        /* Edge to Edge */
+        font-size: 40px !important;     /* Massive Font */
         font-weight: 900 !important;
-        margin-top: 15px !important;
-        margin-bottom: 5px !important;
-        box-shadow: 0px 6px 15px rgba(0,0,0,0.15);
-        display: flex !important;
-        justify-content: center !important;
-        align-items: center !important;
+        text-transform: uppercase;
+        border: none !important;
+        margin-top: 10px !important;
+        box-shadow: 0px 6px 12px rgba(0,0,0,0.1) !important;
     }}
 
-    /* Hover effect to keep it interactive */
-    .stButton > button:active {{
-        transform: scale(0.98);
-        background-color: #A394C7 !important;
-    }}
-
-    /* Result Box Style */
+    /* Result Box Purple Text */
     .result-box {{
         background-color: #FEE2E9; 
         color: #B4A7D6 !important;
@@ -85,7 +60,6 @@ st.markdown(f"""
         font-weight: 900;
         font-family: "Courier New", Courier, monospace !important;
         font-size: 20px;
-        margin-top: 20px;
     }}
     </style>
     """, unsafe_allow_html=True)
@@ -100,8 +74,7 @@ def get_stable_params(kw):
     rng = random.Random(seed)
     a = rng.randint(3, 100000)
     while math.gcd(a, U_MOD) != 1: a += 1 
-    b = rng.randint(1000, 900000)
-    return a, b
+    return a, rng.randint(1000, 900000)
 
 # --- 3. UI LAYOUT ---
 if os.path.exists("CYPHER.png"): st.image("CYPHER.png")
@@ -118,7 +91,7 @@ st.text_input("Hint", key="hint", placeholder="KEY HINT (Optional)")
 if os.path.exists("Kiss Chemistry.png"): st.image("Kiss Chemistry.png")
 user_input = st.text_area("Message", height=150, key="chem", placeholder="YOUR MESSAGE")
 
-# We no longer use columns here to ensure they stack at 100% width
+# We use standard buttons (no columns) to ensure they take up 100% width automatically
 kiss_btn = st.button("KISS")
 tell_btn = st.button("TELL")
 
