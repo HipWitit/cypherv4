@@ -28,38 +28,54 @@ st.markdown(f"""
         color: #B4A7D6 !important; 
         border: 3px solid #B4A7D6 !important;
         font-family: "Courier New", Courier, monospace !important;
-        font-size: 20px !important;
+        font-size: 24px !important;
         font-weight: 900 !important;
         -webkit-text-fill-color: #B4A7D6 !important;
         border-radius: 15px !important;
     }}
 
-    /* THE BUTTONS: GIANT AND STRETCHED */
+    /* FORCE ALL BUTTONS TO BE GIANT, CENTERED, AND FULL WIDTH */
+    div.stButton {{
+        text-align: center;
+        width: 100%;
+    }}
+
     div.stButton > button {{
         background-color: #B4A7D6 !important; 
         color: #FFD4E5 !important;
-        border-radius: 20px !important;
-        height: 100px !important;      /* Extra Tall */
-        width: 100% !important;        /* Edge to Edge */
-        font-size: 40px !important;     /* Massive Font */
+        border-radius: 30px !important;
+        
+        /* The "Stretched" Fix */
+        width: 100% !important;
+        min-width: 100% !important;
+        height: 120px !important;      
+        
+        /* The Font Fix */
+        font-size: 50px !important;     
         font-weight: 900 !important;
+        line-height: 120px !important; /* Centers text vertically */
+        
         text-transform: uppercase;
         border: none !important;
-        margin-top: 10px !important;
-        box-shadow: 0px 6px 12px rgba(0,0,0,0.1) !important;
+        margin-top: 20px !important;
+        box-shadow: 0px 8px 15px rgba(0,0,0,0.2) !important;
+        display: flex !important;
+        justify-content: center !important;
+        align-items: center !important;
     }}
 
     /* Result Box Purple Text */
     .result-box {{
         background-color: #FEE2E9; 
         color: #B4A7D6 !important;
-        padding: 20px;
-        border-radius: 15px;
-        border: 3px solid #B4A7D6;
+        padding: 25px;
+        border-radius: 20px;
+        border: 4px solid #B4A7D6;
         word-wrap: break-word;
         font-weight: 900;
         font-family: "Courier New", Courier, monospace !important;
-        font-size: 20px;
+        font-size: 22px;
+        margin-top: 30px;
     }}
     </style>
     """, unsafe_allow_html=True)
@@ -91,14 +107,15 @@ st.text_input("Hint", key="hint", placeholder="KEY HINT (Optional)")
 if os.path.exists("Kiss Chemistry.png"): st.image("Kiss Chemistry.png")
 user_input = st.text_area("Message", height=150, key="chem", placeholder="YOUR MESSAGE")
 
-# We use standard buttons (no columns) to ensure they take up 100% width automatically
+# NO COLUMNS - Just stacked buttons for full-screen width
 kiss_btn = st.button("KISS")
 tell_btn = st.button("TELL")
 
 if st.button("DESTROY CHEMISTRY"):
-    st.session_state.lips = ""
-    st.session_state.chem = ""
-    st.session_state.hint = ""
+    # Manual clear to avoid the TypeError crash
+    for key in ["lips", "chem", "hint"]:
+        if key in st.session_state:
+            st.session_state[key] = ""
     st.rerun()
 
 # --- 4. PROCESSING ---
