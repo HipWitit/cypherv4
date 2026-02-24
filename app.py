@@ -5,22 +5,26 @@ from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.backends import default_backend
 
-# --- 1. CONFIG & STYLING ---
+# --- 1. CONFIG & HIGH-PRIORITY STYLING ---
 st.set_page_config(page_title="Cyfer Pro: Unicode Global", layout="centered")
 
 raw_pepper = st.secrets.get("MY_SECRET_PEPPER") or "global_unicode_spice_2026"
 PEPPER = str(raw_pepper)
 U_MOD = 1114112 
 
-# Custom Emoji Mapping for digits
+# Custom Emoji Mapping
 EMOJI_MAP = {'0':'🦄','1':'🍼','2':'🩷','3':'🧸','4':'🎀','5':'🍓','6':'🌈','7':'🌸','8':'💕','9':'🫐'}
 REV_MAP = {v: k for k, v in EMOJI_MAP.items()}
 
 st.markdown(f"""
     <style>
+    /* Main Background */
     .stApp {{ background-color: #DBDCFF !important; }}
+    
+    /* Hide Default Labels */
     div[data-testid="stWidgetLabel"], label {{ display: none !important; }}
 
+    /* Force Text Box Colors: Pink Background, Purple Text */
     .stTextInput > div > div > input, 
     .stTextArea > div > div > textarea {{
         background-color: #FEE2E9 !important;
@@ -29,24 +33,33 @@ st.markdown(f"""
         font-family: "Courier New", Courier, monospace !important;
         font-size: 18px !important;
         font-weight: bold !important;
+        -webkit-text-fill-color: #B4A7D6 !important; /* Fix for some browsers */
     }}
 
+    /* Placeholder Color */
+    input::placeholder, textarea::placeholder {{
+        color: #B4A7D6 !important;
+        opacity: 0.7 !important;
+    }}
+
+    /* Progress Bar Color */
     .stProgress > div > div > div > div {{ background-color: #B4A7D6 !important; }}
 
-    /* Layout fixes for the buttons */
+    /* Button Grid & Look */
     .stButton > button {{
         background-color: #B4A7D6 !important; 
         color: #FFD4E5 !important;
         border-radius: 15px !important;
-        min-height: 80px !important; 
+        min-height: 70px !important; 
         width: 100% !important;
         border: none !important;
         text-transform: uppercase;
-        font-size: 28px !important; 
+        font-size: 24px !important; 
         font-weight: 800 !important;
-        margin-bottom: 10px !important;
+        box-shadow: 0px 4px 8px rgba(0,0,0,0.1);
     }}
 
+    /* Result Box Style */
     .result-box {{
         background-color: #FEE2E9; 
         color: #B4A7D6;
@@ -55,6 +68,7 @@ st.markdown(f"""
         border: 2px solid #B4A7D6;
         word-wrap: break-word;
         font-weight: bold;
+        font-family: "Courier New", Courier, monospace !important;
         margin-top: 10px;
     }}
     </style>
@@ -69,7 +83,6 @@ def get_stable_params(kw):
     seed = int.from_bytes(hashlib.sha256(kdf.derive((kw + PEPPER).encode())).digest(), 'big')
     rng = random.Random(seed)
     a = rng.randint(3, 100000)
-    # Coprimality check loop from your screenshot
     while math.gcd(a, U_MOD) != 1: a += 1 
     b = rng.randint(1000, 900000)
     return a, b
@@ -77,7 +90,7 @@ def get_stable_params(kw):
 # --- 3. UI LAYOUT ---
 if os.path.exists("CYPHER.png"): st.image("CYPHER.png")
 
-# Initialize session state keys to avoid the TypeError
+# Initialize Session State
 for key in ["lips", "chem", "hint"]:
     if key not in st.session_state: st.session_state[key] = ""
 
@@ -92,12 +105,11 @@ st.text_input("Hint", key="hint", placeholder="KEY HINT (Optional)")
 
 user_input = st.text_area("Message", height=120, key="chem", placeholder="YOUR MESSAGE (Emojis allowed! 🦄♾️🌈)")
 
-# Action Buttons in a Grid
+# Compact Button Grid
 col1, col2 = st.columns(2)
-kiss_btn = col1.button("KISS")
-tell_btn = col2.button("TELL")
+with col1: kiss_btn = st.button("KISS")
+with col2: tell_btn = st.button("TELL")
 
-# The Fix: Resetting session state manually
 if st.button("DESTROY CHEMISTRY"):
     st.session_state.lips = ""
     st.session_state.chem = ""
@@ -109,7 +121,6 @@ if kw and user_input:
     a, b = get_stable_params(kw)
     
     if kiss_btn:
-        # Affine Transform: (a * char_code + b) % U_MOD
         encoded = [to_emoji((a * ord(c) + b) % U_MOD) for c in user_input]
         res = "  ".join(encoded) 
         st.markdown(f'<div class="result-box">{res}</div>', unsafe_allow_html=True)
@@ -117,10 +128,8 @@ if kw and user_input:
     if tell_btn:
         try:
             a_inv = pow(a, -1, U_MOD)
-            # Split by the double-space separator
             parts = [p.strip() for p in user_input.split("  ") if p.strip()]
-            # Reverse: a_inv * (val - b) % U_MOD
             decoded = "".join(chr((a_inv * (from_emoji(p) - b)) % U_MOD) for p in parts)
-            st.success(f"Whisper: {decoded}")
+            st.markdown(f'<div class="result-box">Whisper: {decoded}</div>', unsafe_allow_html=True)
         except:
-            st.error("Chemistry Error! Check your key or message format.")
+            st.error("Chemistry Error! Check key or format.")
