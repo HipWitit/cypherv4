@@ -17,60 +17,58 @@ MOD = 127
 
 st.markdown(f"""
     <style>
-    /* Background and global styles */
-    .stApp {{ background-color: #DBDCFF !important; }}
+    /* Global alignment */
+    .stApp {{ 
+        background-color: #DBDCFF !important;
+        display: flex;
+        justify-content: center;
+    }}
+    
+    /* Center all widget containers */
+    div.stButton, div.stTextInput, div.stTextArea, div.stImage {{
+        text-align: center !important;
+        margin: 0 auto !important;
+        width: 100% !important;
+    }}
+
     div[data-testid="stWidgetLabel"], label {{ display: none !important; }}
 
     /* TEXT BOX & INPUT - DARK PURPLE TEXT */
     .stTextInput > div > div > input, 
     .stTextArea > div > div > textarea {{
         background-color: #FEE2E9 !important;
-        color: #7E60BF !important; /* Darker purple for readability */
+        color: #7E60BF !important; 
         border: 2px solid #B4A7D6 !important;
         font-family: "Courier New", monospace !important;
         font-size: 18px !important;
         font-weight: bold !important;
-    }}
-    
-    /* Input placeholder styling */
-    input::placeholder, textarea::placeholder {{
-        color: #B4A7D6 !important;
-        opacity: 0.8;
+        text-align: center !important; /* Centers the typed text too! */
     }}
 
-    /* ACTION BUTTONS (KISS, TELL) - RECTANGLE FIX */
+    /* ACTION BUTTONS (KISS, TELL, DESTROY) - FULL WIDTH & CENTERED */
     div.stButton > button {{
         width: 100% !important;
-        min-height: 90px !important; /* Forces rectangle height */
-        min-width: 250px !important; /* Forces rectangle width */
-        background-color: #7E60BF !important; /* Deeper Purple */
-        color: #FFE1EB !important; /* Bright Pink Text */
-        border-radius: 15px !important;
+        min-height: 85px !important; 
+        background-color: #7E60BF !important; 
+        color: #FFE1EB !important; 
+        border-radius: 20px !important;
         border: none !important;
-        box-shadow: 0px 5px 0px #5E448F !important; /* 3D effect shadow */
-        margin-top: 10px !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
+        box-shadow: 0px 5px 0px #5E448F !important;
+        margin: 15px 0 !important;
+        display: block !important;
     }}
 
     div.stButton > button p {{
         font-size: 32px !important; 
         font-weight: 800 !important;
-        letter-spacing: 2px;
+        text-transform: uppercase !important;
         margin: 0 !important;
     }}
 
-    /* DESTROY BUTTON - DIFFERENT STYLE */
-    div.stButton:last-of-type > button {{
-        min-height: 60px !important;
+    /* Specific style for DESTROY to keep it looking consistent but centered */
+    div[data-testid="stVerticalBlock"] > div:last-child .stButton > button {{
         background-color: #B4A7D6 !important;
         box-shadow: 0px 4px 0px #8E7DB3 !important;
-        margin-top: 30px !important;
-    }}
-    
-    div.stButton:last-of-type > button p {{
-        font-size: 20px !important;
     }}
 
     /* RESULT BOX */
@@ -78,9 +76,9 @@ st.markdown(f"""
         background-color: #FEE2E9; 
         color: #7E60BF;
         padding: 20px;
-        border-radius: 15px;
+        border-radius: 20px;
         border: 3px solid #7E60BF;
-        margin-top: 20px;
+        margin: 20px 0;
         font-weight: bold;
         font-family: monospace;
         text-align: center;
@@ -201,18 +199,18 @@ if kw and (kiss_btn or tell_btn):
             st.markdown(f'<div class="result-box">{res}</div>', unsafe_allow_html=True)
             components.html(f"""
                 <button onclick="navigator.share({{title:'Secret',text:`{res}\\n\\nHint: {hint_text}`}})" 
-                style="background-color:#FEE2E9; color:#7E60BF; font-weight:bold; border-radius:15px; 
-                min-height:80px; width:100%; cursor:pointer; font-size: 28px; border:3px solid #7E60BF; 
+                style="background-color:#FEE2E9; color:#7E60BF; font-weight:bold; border-radius:20px; 
+                min-height:85px; width:100%; cursor:pointer; font-size: 28px; border:3px solid #7E60BF; 
                 text-transform:uppercase; font-family:sans-serif; margin-top:10px;">
                 SHARE ✨</button>
-            """, height=120)
+            """, height=110)
 
 # --- 5. DESTROY ---
 if st.button("DESTROY CHEMISTRY"):
-    st.session_state.clear()
+    for key in st.session_state.keys():
+        del st.session_state[key]
     st.rerun()
 
 if os.path.exists("LPB.png"):
-    st.markdown('<div style="text-align:center; margin-top:40px;">', unsafe_allow_html=True)
     st.image("LPB.png", width=250)
-    st.markdown('<div style="color:#7E60BF; font-family:monospace; font-weight:bold; font-size:22px; margin-top:10px;">CREATED BY</div></div>', unsafe_allow_html=True)
+    st.markdown('<div style="color:#7E60BF; font-family:monospace; font-weight:bold; font-size:22px; margin-top:10px; text-align:center;">CREATED BY</div>', unsafe_allow_html=True)
