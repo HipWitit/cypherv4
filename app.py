@@ -4,83 +4,68 @@ from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.backends import default_backend
 
-# --- 1. CONFIG & AGGRESSIVE CSS ---
+# --- 1. CONFIG & CSS ---
 st.set_page_config(page_title="Cyfer Pro", layout="centered")
 
-raw_pepper = st.secrets.get("MY_SECRET_PEPPER") or "global_unicode_spice_2026"
-PEPPER = str(raw_pepper)
-U_MOD = 1114112 
-
-# Custom Emoji Map
+PEPPER = str(st.secrets.get("MY_SECRET_PEPPER") or "global_unicode_spice_2026")
+U_MOD = 1114112
 EMOJI_MAP = {'0':'🦄','1':'🍼','2':'🩷','3':'🧸','4':'🎀','5':'🍓','6':'🌈','7':'🌸','8':'💕','9':'🫐'}
 REV_MAP = {v: k for k, v in EMOJI_MAP.items()}
 
-st.markdown(f"""
+# CSS: proportional buttons using vh/em
+st.markdown("""
     <style>
-    /* Background and Label Removal */
-    .stApp {{ background-color: #DBDCFF !important; }}
-    div[data-testid="stWidgetLabel"], label {{ display: none !important; }}
+    .stApp { background-color: #DBDCFF !important; }
+    div[data-testid="stWidgetLabel"], label { display: none !important; }
 
-    /* Fix Input Box Text: Bold Purple on Pink */
+    /* Input Styling */
     .stTextInput > div > div > input, 
-    .stTextArea > div > div > textarea {{
+    .stTextArea > div > div > textarea {
         background-color: #FEE2E9 !important;
-        color: #B4A7D6 !important; 
+        color: #B4A7D6 !important;
         border: 3px solid #B4A7D6 !important;
-        font-family: "Courier New", Courier, monospace !important;
-        font-size: 24px !important;
+        font-family: "Courier New", monospace !important;
+        font-size: 1.2em !important;
         font-weight: 900 !important;
-        -webkit-text-fill-color: #B4A7D6 !important;
         border-radius: 15px !important;
-    }}
+        padding: 0.5em !important;
+    }
 
-    /* FORCE ALL BUTTONS TO BE GIANT, CENTERED, AND FULL WIDTH */
-    div.stButton {{
-        text-align: center;
-        width: 100%;
-    }}
-
-    div.stButton > button {{
+    /* Buttons: proportional, flexible, same height */
+    div.stButton > button {
         background-color: #B4A7D6 !important; 
         color: #FFD4E5 !important;
-        border-radius: 30px !important;
-        
-        /* The "Stretched" Fix */
-        width: 100% !important;
-        min-width: 100% !important;
-        height: 120px !important;      
-        
-        /* The Font Fix */
-        font-size: 50px !important;     
+        border-radius: 15px !important;
+        width: 90% !important;
+        min-height: 8vh !important;       /* scales with viewport height */
+        font-size: 1.6em !important;      /* scales with font */
         font-weight: 900 !important;
-        line-height: 120px !important; /* Centers text vertically */
-        
         text-transform: uppercase;
-        border: none !important;
-        margin-top: 20px !important;
-        box-shadow: 0px 8px 15px rgba(0,0,0,0.2) !important;
+        margin: 1vh auto !important;      /* vertical spacing and center */
         display: flex !important;
         justify-content: center !important;
         align-items: center !important;
-    }}
+        border: none !important;
+        box-shadow: 0px 4px 10px rgba(0,0,0,0.1) !important;
+    }
 
-    /* Result Box Purple Text */
-    .result-box {{
+    /* Result Box */
+    .result-box {
         background-color: #FEE2E9; 
         color: #B4A7D6 !important;
-        padding: 25px;
-        border-radius: 20px;
-        border: 4px solid #B4A7D6;
+        padding: 1em;
+        border-radius: 12px;
+        border: 3px solid #B4A7D6;
         word-wrap: break-word;
         font-weight: 900;
-        font-family: "Courier New", Courier, monospace !important;
-        font-size: 22px;
-        margin-top: 30px;
-    }}
+        font-family: "Courier New", monospace !important;
+        font-size: 1.1em;
+        margin-top: 1vh;
+    }
     </style>
-    """, unsafe_allow_html=True)
+""", unsafe_allow_html=True)
 
-# --- 2. THE ENGINE ---
+# --- 2. ENGINE ---
 def to_emoji(val): return "".join(EMOJI_MAP.get(d, d) for d in str(val))
 def from_emoji(s): return int("".join(REV_MAP.get(c, c) for c in s))
 
@@ -92,41 +77,37 @@ def get_stable_params(kw):
     while math.gcd(a, U_MOD) != 1: a += 1 
     return a, rng.randint(1000, 900000)
 
-# --- 3. UI LAYOUT ---
+# --- 3. UI ---
 if os.path.exists("CYPHER.png"): st.image("CYPHER.png")
 if os.path.exists("Lock Lips.png"): st.image("Lock Lips.png")
 
 kw = st.text_input("Key", type="password", key="lips", placeholder="SECRET KEY").strip()
-
 if kw:
-    strength = min(len(kw) / 12.0, 1.0)
-    st.progress(strength)
+    st.progress(min(len(kw)/12, 1.0))
 
 st.text_input("Hint", key="hint", placeholder="KEY HINT (Optional)")
-
 if os.path.exists("Kiss Chemistry.png"): st.image("Kiss Chemistry.png")
 user_input = st.text_area("Message", height=150, key="chem", placeholder="YOUR MESSAGE")
 
-# NO COLUMNS - Just stacked buttons for full-screen width
+# --- 4. PROPORTIONAL BUTTONS ---
 kiss_btn = st.button("KISS")
 tell_btn = st.button("TELL")
+destroy_btn = st.button("DESTROY CHEMISTRY")
 
-if st.button("DESTROY CHEMISTRY"):
-    # Manual clear to avoid the TypeError crash
-    for key in ["lips", "chem", "hint"]:
-        if key in st.session_state:
-            st.session_state[key] = ""
+if destroy_btn:
+    st.session_state.lips = ""
+    st.session_state.chem = ""
+    st.session_state.hint = ""
     st.rerun()
 
-# --- 4. PROCESSING ---
+# --- 5. PROCESSING ---
 if kw and user_input:
     a, b = get_stable_params(kw)
     
     if kiss_btn:
         encoded = [to_emoji((a * ord(c) + b) % U_MOD) for c in user_input]
-        res = "  ".join(encoded) 
-        st.markdown(f'<div class="result-box">{res}</div>', unsafe_allow_html=True)
-
+        st.markdown(f'<div class="result-box">{"  ".join(encoded)}</div>', unsafe_allow_html=True)
+    
     if tell_btn:
         try:
             a_inv = pow(a, -1, U_MOD)
