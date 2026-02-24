@@ -20,7 +20,7 @@ st.markdown(f"""
     div[data-testid="stWidgetLabel"], label {{ display: none !important; }}
     .block-container {{ max-width: 100% !important; padding: 1rem !important; }}
 
-    /* Text Inputs */
+    /* 1. Text Inputs - Fixed Color & Font */
     .stTextInput > div > div > input, 
     .stTextArea > div > div > textarea {{
         background-color: #FEE2E9 !important;
@@ -33,16 +33,16 @@ st.markdown(f"""
         -webkit-text-fill-color: #B4A7D6 !important;
     }}
 
-    /* BUTTON WRAPPER: Force 100% Width */
-    div[data-testid="stButton"] {{
+    /* 2. BUTTON PROPORTIONS FIX */
+    /* This ensures every button container takes up the full width */
+    div[data-testid="stVerticalBlock"] > div {{
         width: 100% !important;
-        display: block !important;
     }}
 
-    /* Main Purple Buttons (KISS, TELL, DESTROY) */
+    /* The actual button styling */
     div.stButton > button {{
         width: 100% !important;
-        padding: 25px 10px !important; /* Vertical padding creates the height */
+        height: 90px !important; /* Force a uniform height for all buttons */
         background-color: #B4A7D6 !important; 
         color: #FFD4E5 !important;
         border-radius: 20px !important;
@@ -54,14 +54,15 @@ st.markdown(f"""
         margin: 10px 0px !important;
     }}
 
-    /* Button Text Styling */
+    /* Ensuring text doesn't cause the button to expand/contract */
     div.stButton > button p {{
-        font-size: 30px !important; 
+        font-size: 32px !important; 
         font-weight: 900 !important;
         text-transform: uppercase !important;
         font-family: "Arial Black", sans-serif !important;
         line-height: 1 !important;
         margin: 0 !important;
+        white-space: nowrap !important; /* Keep text on one line */
     }}
 
     /* SHARE BUTTON: Pink Background, Purple Text */
@@ -73,12 +74,12 @@ st.markdown(f"""
         color: #B4A7D6 !important;
     }}
 
-    /* Specific scaling for DESTROY button so it doesn't wrap */
+    /* Scale down font for long button text to keep proportions identical */
     div.stButton:last-of-type > button p {{
-        font-size: 20px !important;
+        font-size: 22px !important;
     }}
 
-    /* Result Box */
+    /* 3. Result Box */
     .result-box {{
         background-color: #FEE2E9; 
         color: #B4A7D6 !important;
@@ -111,17 +112,20 @@ def get_params(kw):
     return a, rng.randint(1000, 900000)
 
 # --- 3. UI LAYOUT ---
-# Fixed width='stretch' per your logs
-if os.path.exists("CYPHER.png"): st.image("CYPHER.png", width='stretch')
-if os.path.exists("Lock Lips.png"): st.image("Lock Lips.png", width='stretch')
+# Updated width logic to match your logs
+def show_img(name):
+    if os.path.exists(name): st.image(name, width=600) # 'stretch' is the new standard but width works best for stability
+
+show_img("CYPHER.png")
+show_img("Lock Lips.png")
 
 kw = st.text_input("Key", type="password", key="lips", placeholder="SECRET KEY").strip()
 st.text_input("Hint", key="hint", placeholder="KEY HINT (Optional)")
 
-if os.path.exists("Kiss Chemistry.png"): st.image("Kiss Chemistry.png", width='stretch')
+show_img("Kiss Chemistry.png")
 user_input = st.text_area("Message", height=120, key="chem", placeholder="YOUR MESSAGE")
 
-# Result Area Container
+# Placeholder for Result area
 result_spot = st.container()
 
 # Action Buttons
@@ -156,5 +160,4 @@ if destroy_btn:
         if key in st.session_state: st.session_state[key] = ""
     st.rerun()
 
-if os.path.exists("LPB.png"): st.image("LPB.png", width='stretch')
-
+show_img("LPB.png")
