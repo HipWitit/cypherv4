@@ -19,57 +19,59 @@ st.markdown(f"""
     <style>
     /* 1. FORCE THE APP TO USE FULL WIDTH */
     .block-container {{
+        padding-top: 1rem !important;
         padding-left: 1rem !important;
         padding-right: 1rem !important;
         max-width: 100% !important;
     }}
 
-    /* 2. Main App Background */
+    /* Hide Streamlit elements for a clean look */
+    #MainMenu, footer, header {{visibility: hidden;}}
+
     .stApp {{ background-color: #DBDCFF !important; }}
-    
-    /* 3. Hide Labels */
     div[data-testid="stWidgetLabel"], label {{ display: none !important; }}
 
-    /* 4. Input Boxes: Edge-to-Edge Bold Purple */
+    /* 2. Input Boxes: Edge-to-Edge Bold Purple */
     .stTextInput > div > div > input, 
     .stTextArea > div > div > textarea {{
         background-color: #FEE2E9 !important;
         color: #B4A7D6 !important; 
         border: 3px solid #B4A7D6 !important;
         font-family: "Courier New", Courier, monospace !important;
-        font-size: 24px !important;
+        font-size: 26px !important;
         font-weight: 900 !important;
         -webkit-text-fill-color: #B4A7D6 !important;
         border-radius: 15px !important;
-        width: 100% !important;
     }}
 
-    /* 5. THE NUCLEAR BUTTON FIX: Force every button container to be full width */
-    div[data-testid="element-container"], 
-    div[data-testid="stVerticalBlock"] > div,
+    /* 3. THE BUTTON REWRITE: Giant Bold Purple Text */
     div[data-testid="stButton"] {{
         width: 100% !important;
     }}
 
     div[data-testid="stButton"] > button {{
         background-color: #B4A7D6 !important; 
-        color: #FFD4E5 !important;
-        border-radius: 25px !important;
-        
-        /* Height and Centering */
-        height: 110px !important; 
+        border-radius: 30px !important;
+        height: 100px !important; 
         width: 100% !important;
-        display: flex !important;
-        justify-content: center !important;
-        align-items: center !important;
-
-        /* Font Styling */
-        font-size: 45px !important; 
-        font-weight: 900 !important;
-        text-transform: uppercase;
         border: none !important;
-        margin-top: 15px !important;
+        margin-top: 10px !important;
         box-shadow: 0px 8px 15px rgba(0,0,0,0.2) !important;
+    }}
+
+    /* This targets the actual text inside the button */
+    div[data-testid="stButton"] > button p {{
+        color: #FFD4E5 !important; /* Your signature pink */
+        font-size: 48px !important; /* Massive font */
+        font-weight: 900 !important;
+        font-family: "Arial Black", Gadget, sans-serif !important;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+    }}
+
+    /* Smaller text for the Destroy button */
+    div[data-testid="stButton"]:last-of-type > button p {{
+        font-size: 28px !important;
     }}
 
     /* Result Box Style */
@@ -84,7 +86,6 @@ st.markdown(f"""
         font-family: "Courier New", Courier, monospace !important;
         font-size: 22px;
         margin-top: 25px;
-        width: 100%;
     }}
     </style>
     """, unsafe_allow_html=True)
@@ -102,7 +103,6 @@ def get_stable_params(kw):
     return a, rng.randint(1000, 900000)
 
 # --- 3. UI LAYOUT ---
-# Using use_container_width=True for images to make sure they also span the screen
 if os.path.exists("CYPHER.png"): st.image("CYPHER.png", use_container_width=True)
 if os.path.exists("Lock Lips.png"): st.image("Lock Lips.png", use_container_width=True)
 
@@ -117,7 +117,7 @@ st.text_input("Hint", key="hint", placeholder="KEY HINT (Optional)")
 if os.path.exists("Kiss Chemistry.png"): st.image("Kiss Chemistry.png", use_container_width=True)
 user_input = st.text_area("Message", height=150, key="chem", placeholder="YOUR MESSAGE")
 
-# Directly stacking buttons
+# Stacking buttons
 kiss_btn = st.button("KISS")
 tell_btn = st.button("TELL")
 
