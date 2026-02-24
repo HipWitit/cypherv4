@@ -7,7 +7,7 @@ from cryptography.hazmat.backends import default_backend
 
 st.set_page_config(page_title="Cyfer Pro", layout="centered")
 
-# --- ENGINE ---
+# --- 1. ENGINE ---
 raw_pepper = st.secrets.get("MY_SECRET_PEPPER") or "global_unicode_spice_2026"
 PEPPER = str(raw_pepper)
 U_MOD = 1114112 
@@ -27,7 +27,7 @@ def get_params(kw):
     while math.gcd(a, U_MOD) != 1: a += 1 
     return a, rng.randint(1000, 900000)
 
-# --- STYLES ---
+# --- 2. GLOBAL STYLES ---
 st.markdown(f"""
     <style>
     .stApp {{ background-color: #DBDCFF !important; }}
@@ -41,17 +41,16 @@ st.markdown(f"""
         border-radius: 15px !important;
         -webkit-text-fill-color: #B4A7D6 !important;
     }}
-    .result-box {{
-        background-color: #FEE2E9; color: #B4A7D6; padding: 20px;
-        border-radius: 20px; border: 4px solid #B4A7D6;
-        word-wrap: break-word; font-weight: 900;
-        font-family: "Courier New", monospace; font-size: 22px;
-        margin-bottom: 15px; text-align: center;
+    /* Simple styling for the DESTROY button which we leave as a standard button */
+    div.stButton > button {{
+        width: 100% !important; height: 60px !important;
+        background-color: #B4A7D6 !important; color: #FFD4E5 !important;
+        border-radius: 20px !important; border: none !important;
     }}
     </style>
     """, unsafe_allow_html=True)
 
-# --- UI ---
+# --- 3. UI LAYOUT ---
 if os.path.exists("CYPHER.png"): st.image("CYPHER.png", width=600)
 if os.path.exists("Lock Lips.png"): st.image("Lock Lips.png", width=600)
 
@@ -61,15 +60,15 @@ st.text_input("Hint", key="hint", placeholder="KEY HINT (Optional)")
 if os.path.exists("Kiss Chemistry.png"): st.image("Kiss Chemistry.png", width=600)
 user_input = st.text_area("Message", height=120, key="chem", placeholder="YOUR MESSAGE")
 
-# --- ACTION BUTTONS (The Fixed Ones) ---
-# We use a custom component to handle KISS/TELL/SHARE all at once
+# --- 4. THE ACTION HUB (HTML/JS) ---
+# We calculate results in Python, but display buttons and results in HTML
 if kw and user_input:
     a, b = get_params(kw)
     
-    # Process inputs for the buttons
+    # Pre-calculate KISS
     kiss_res = "  ".join([to_emoji((a * ord(c) + b) % U_MOD) for c in user_input])
     
-    tell_res = ""
+    # Pre-calculate TELL
     try:
         a_inv = pow(a, -1, U_MOD)
         parts = [p.strip() for p in user_input.split("  ") if p.strip()]
@@ -77,45 +76,57 @@ if kw and user_input:
     except:
         tell_res = "Chemistry Error!"
 
-    # The HTML/JS Bridge
+    # Render Hard-Coded Buttons that won't shrink
     components.html(f"""
         <style>
             .btn {{
-                width: 100%; height: 80px; margin-bottom: 15px;
-                border-radius: 20px; border: none; font-weight: 900;
-                font-family: "Arial Black", sans-serif; font-size: 28px;
+                width: 100%; height: 85px; margin-bottom: 12px;
+                border-radius: 22px; border: none; font-weight: 900;
+                font-family: sans-serif; font-size: 32px;
                 text-transform: uppercase; cursor: pointer;
                 display: flex; align-items: center; justify-content: center;
-                box-shadow: 0px 6px 0px #9d8dbd; transition: 0.1s;
+                box-shadow: 0px 6px 0px #9d8dbd;
             }}
             .purple {{ background-color: #B4A7D6; color: #FFD4E5; }}
-            .pink {{ background-color: #FFD4E5; color: #B4A7D6; box-shadow: 0px 6px 0px #e0b8c8; }}
-            .btn:active {{ transform: translateY(4px); box-shadow: 0px 2px 0px #9d8dbd; }}
-            .res {{ display:none; }}
+            .pink {{ background-color: #FFD4E5; color: #B4A7D6; box-shadow: 0px 6px 0px #e0b8c8; font-size: 24px; }}
+            .res-box {{
+                background-color: #FEE2E9; color: #B4A7D6; padding: 20px;
+                border-radius: 20px; border: 4px solid #B4A7D6;
+                margin-bottom: 15px; text-align: center;
+                font-family: monospace; font-size: 20px; font-weight: 900;
+                display: none; word-break: break-all;
+            }}
         </style>
 
-        <button class="btn purple" onclick="show('kiss')">KISS</button>
-        <button class="btn purple" onclick="show('tell')">TELL</button>
+        <button class="btn purple" onclick="run('kiss')">KISS</button>
+        <button class="btn purple" onclick="run('tell')">TELL</button>
         
-        <div id="kiss_box" class="res"><div style='background:#FEE2E9; color:#B4A7D6; padding:20px; border-radius:20px; border:4px solid #B4A7D6; margin-bottom:15px; text-align:center; font-family:monospace; font-weight:900;'>{kiss_res}</div><button class="btn pink" onclick="share('{kiss_res}')">SHARE ✨</button></div>
-        <div id="tell_box" class="res"><div style='background:#FEE2E9; color:#B4A7D6; padding:20px; border-radius:20px; border:4px solid #B4A7D6; margin-bottom:15px; text-align:center; font-family:monospace; font-weight:900;'>{tell_res}</div><button class="btn pink" onclick="share('{tell_res}')">SHARE ✨</button></div>
+        <div id="kiss_ui" style="display:none">
+            <div class="res-box" style="display:block">{kiss_res}</div>
+            <button class="btn pink" onclick="shareIt('{kiss_res}')">SHARE ✨</button>
+        </div>
+
+        <div id="tell_ui" style="display:none">
+            <div class="res-box" style="display:block">{tell_res}</div>
+            <button class="btn pink" onclick="shareIt('{tell_res}')">SHARE ✨</button>
+        </div>
 
         <script>
-            function show(id) {{
-                document.getElementById('kiss_box').style.display = 'none';
-                document.getElementById('tell_box').style.display = 'none';
-                document.getElementById(id + '_box').style.display = 'block';
+            function run(type) {{
+                document.getElementById('kiss_ui').style.display = 'none';
+                document.getElementById('tell_ui').style.display = 'none';
+                document.getElementById(type + '_ui').style.display = 'block';
             }}
-            function share(txt) {{
+            function shareIt(text) {{
                 if (navigator.share) {{
-                    navigator.share({{ title: 'Cyfer', text: txt }});
+                    navigator.share({{ title: 'Cyfer Message', text: text }});
                 }} else {{
-                    navigator.clipboard.writeText(txt);
-                    alert('Copied!');
+                    navigator.clipboard.writeText(text);
+                    alert('Copied to clipboard!');
                 }}
             }}
         </script>
-    """, height=600)
+    """, height=500)
 
 if st.button("DESTROY CHEMISTRY"):
     for k in ["lips", "chem", "hint"]: st.session_state[k] = ""
