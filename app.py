@@ -1,5 +1,5 @@
 import streamlit as st
-import re, os, random, hashlib, math
+import os, random, hashlib, math
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.backends import default_backend
@@ -11,7 +11,6 @@ raw_pepper = st.secrets.get("MY_SECRET_PEPPER") or "global_unicode_spice_2026"
 PEPPER = str(raw_pepper)
 U_MOD = 1114112 
 
-# Mapping
 EMOJI_MAP = {'0':'🦄','1':'🍼','2':'🩷','3':'🧸','4':'🎀','5':'🍓','6':'🌈','7':'🌸','8':'💕','9':'🫐'}
 REV_MAP = {v: k for k, v in EMOJI_MAP.items()}
 
@@ -21,37 +20,44 @@ st.markdown(f"""
     div[data-testid="stWidgetLabel"], label {{ display: none !important; }}
     .block-container {{ max-width: 100% !important; padding: 1rem !important; }}
 
-    /* Input Styling */
+    /* Inputs */
     .stTextInput > div > div > input, .stTextArea > div > div > textarea {{
         background-color: #FEE2E9 !important;
         color: #B4A7D6 !important; 
         border: 3px solid #B4A7D6 !important;
         font-family: "Courier New", Courier, monospace !important;
-        font-size: 22px !important; font-weight: 900 !important;
-        -webkit-text-fill-color: #B4A7D6 !important;
+        font-size: 20px !important; font-weight: 900 !important;
         border-radius: 15px !important;
     }}
 
-    /* Giant Button Styling */
+    /* THE BUTTON FIX: Proportional & Full Width */
+    div[data-testid="stButton"] {{
+        width: 100% !important;
+        margin: 0px !important;
+        padding: 5px 0px !important;
+    }}
+
     div[data-testid="stButton"] > button {{
         width: 100% !important;
+        min-height: 70px !important; /* Fixed height but smaller to prevent squishing */
         background-color: #B4A7D6 !important; 
-        border-radius: 25px !important;
-        height: 100px !important; 
+        border-radius: 20px !important;
         border: none !important;
-        box-shadow: 0px 8px 15px rgba(0,0,0,0.15) !important;
-        margin-bottom: 10px !important;
+        box-shadow: 0px 5px 10px rgba(0,0,0,0.1) !important;
+        display: block !important; /* Changed from flex to block for stability */
     }}
 
     div[data-testid="stButton"] > button p {{
         color: #FFD4E5 !important;
-        font-size: 45px !important; 
+        font-size: 32px !important; /* Slightly smaller for better fit */
         font-weight: 900 !important;
         text-transform: uppercase !important;
-        font-family: "Arial Black", Gadget, sans-serif !important;
+        font-family: "Arial Black", sans-serif !important;
+        margin: 0 !important;
+        line-height: 70px !important; /* Centers text vertically */
     }}
 
-    /* Result Box - The Mockup Look */
+    /* Result Box */
     .result-box {{
         background-color: #FEE2E9; 
         color: #B4A7D6 !important;
@@ -60,20 +66,19 @@ st.markdown(f"""
         border: 4px solid #B4A7D6;
         word-wrap: break-word;
         font-weight: 900;
-        font-family: "Courier New", Courier, monospace !important;
+        font-family: "Courier New", monospace !important;
         font-size: 22px;
-        margin-top: 10px;
         margin-bottom: 15px;
         text-align: center;
     }}
     </style>
     """, unsafe_allow_html=True)
 
-# --- 2. THE ENGINE ---
+# --- 2. ENGINE ---
 def to_emoji(val): return "".join(EMOJI_MAP.get(d, d) for d in str(val))
 def from_emoji(s): return int("".join(REV_MAP.get(c, c) for c in s))
 
-def get_stable_params(kw):
+def get_params(kw):
     kdf = PBKDF2HMAC(algorithm=hashes.SHA256(), length=32, salt=b"uni_v5", iterations=100000, backend=default_backend())
     seed = int.from_bytes(hashlib.sha256(kdf.derive((kw + PEPPER).encode())).digest(), 'big')
     rng = random.Random(seed)
@@ -86,46 +91,41 @@ if os.path.exists("CYPHER.png"): st.image("CYPHER.png", use_container_width=True
 if os.path.exists("Lock Lips.png"): st.image("Lock Lips.png", use_container_width=True)
 
 kw = st.text_input("Key", type="password", key="lips", placeholder="SECRET KEY").strip()
-if kw: st.progress(min(len(kw) / 12.0, 1.0))
-
 st.text_input("Hint", key="hint", placeholder="KEY HINT (Optional)")
 
 if os.path.exists("Kiss Chemistry.png"): st.image("Kiss Chemistry.png", use_container_width=True)
-user_input = st.text_area("Message", height=150, key="chem", placeholder="YOUR MESSAGE")
+user_input = st.text_area("Message", height=120, key="chem", placeholder="YOUR MESSAGE")
 
-# --- PLACEHOLDER FOR THE RESULT BOX & SHARE BUTTON ---
-result_container = st.container()
+# Placeholder for Result/Share area
+result_spot = st.container()
 
-# Bottom Action Buttons
+# Action Buttons
 kiss_btn = st.button("KISS")
 tell_btn = st.button("TELL")
+destroy_btn = st.button("DESTROY CHEMISTRY")
 
-# Logic to fill the result box ABOVE the other buttons
 if kw and user_input:
-    a, b = get_stable_params(kw)
-    res_text = ""
+    a, b = get_params(kw)
+    output = ""
     
     if kiss_btn:
         encoded = [to_emoji((a * ord(c) + b) % U_MOD) for c in user_input]
-        res_text = "  ".join(encoded)
+        output = "  ".join(encoded)
     
     if tell_btn:
         try:
             a_inv = pow(a, -1, U_MOD)
             parts = [p.strip() for p in user_input.split("  ") if p.strip()]
-            res_text = "".join(chr((a_inv * (from_emoji(p) - b)) % U_MOD) for p in parts)
+            output = "".join(chr((a_inv * (from_emoji(p) - b)) % U_MOD) for p in parts)
         except:
-            st.error("Chemistry Error!")
+            st.error("Error!")
 
-    if res_text:
-        with result_container:
-            st.markdown(f'<div class="result-box">{res_text}</div>', unsafe_allow_html=True)
-            # This is the giant SHARE button from your mockup
-            if st.button("SHARE ✨"):
-                st.write("Copied to clipboard!") # Placeholder for share action
+    if output:
+        with result_spot:
+            st.markdown(f'<div class="result-box">{output}</div>', unsafe_allow_html=True)
+            st.button("SHARE ✨")
 
-# Destroy and Footer
-if st.button("DESTROY CHEMISTRY"):
+if destroy_btn:
     for key in ["lips", "chem", "hint"]:
         if key in st.session_state: st.session_state[key] = ""
     st.rerun()
