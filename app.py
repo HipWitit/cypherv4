@@ -4,7 +4,7 @@ from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.backends import default_backend
 
-# --- 1. CONFIG & CSS ---
+# --- 1. CONFIG & REFINED CSS ---
 st.set_page_config(page_title="Cyfer Pro", layout="centered")
 
 raw_pepper = st.secrets.get("MY_SECRET_PEPPER") or "global_unicode_spice_2026"
@@ -40,6 +40,7 @@ st.markdown(f"""
         height: 100px !important; 
         border: none !important;
         box-shadow: 0px 8px 15px rgba(0,0,0,0.15) !important;
+        margin-bottom: 10px !important;
     }}
 
     div[data-testid="stButton"] > button p {{
@@ -50,7 +51,7 @@ st.markdown(f"""
         font-family: "Arial Black", Gadget, sans-serif !important;
     }}
 
-    /* Result Box - Placed Above Images */
+    /* Result Box - The Mockup Look */
     .result-box {{
         background-color: #FEE2E9; 
         color: #B4A7D6 !important;
@@ -61,8 +62,8 @@ st.markdown(f"""
         font-weight: 900;
         font-family: "Courier New", Courier, monospace !important;
         font-size: 22px;
-        margin-top: 20px;
-        margin-bottom: 20px;
+        margin-top: 10px;
+        margin-bottom: 15px;
         text-align: center;
     }}
     </style>
@@ -92,10 +93,14 @@ st.text_input("Hint", key="hint", placeholder="KEY HINT (Optional)")
 if os.path.exists("Kiss Chemistry.png"): st.image("Kiss Chemistry.png", use_container_width=True)
 user_input = st.text_area("Message", height=150, key="chem", placeholder="YOUR MESSAGE")
 
+# --- PLACEHOLDER FOR THE RESULT BOX & SHARE BUTTON ---
+result_container = st.container()
+
+# Bottom Action Buttons
 kiss_btn = st.button("KISS")
 tell_btn = st.button("TELL")
 
-# --- 4. THE RESULT BOX (Now positioned ABOVE the rest) ---
+# Logic to fill the result box ABOVE the other buttons
 if kw and user_input:
     a, b = get_stable_params(kw)
     res_text = ""
@@ -113,11 +118,13 @@ if kw and user_input:
             st.error("Chemistry Error!")
 
     if res_text:
-        st.markdown(f'<div class="result-box">{res_text}</div>', unsafe_allow_html=True)
-        # This acts as your "Share" button by copying to clipboard
-        st.button("📋 COPY MESSAGE") 
+        with result_container:
+            st.markdown(f'<div class="result-box">{res_text}</div>', unsafe_allow_html=True)
+            # This is the giant SHARE button from your mockup
+            if st.button("SHARE ✨"):
+                st.write("Copied to clipboard!") # Placeholder for share action
 
-# --- 5. FOOTER ---
+# Destroy and Footer
 if st.button("DESTROY CHEMISTRY"):
     for key in ["lips", "chem", "hint"]:
         if key in st.session_state: st.session_state[key] = ""
