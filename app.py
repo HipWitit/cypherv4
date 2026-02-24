@@ -20,28 +20,29 @@ st.markdown(f"""
     /* 1. Main Background */
     .stApp {{ background-color: #DBDCFF !important; }}
     
-    /* 2. FORCE FULL WIDTH ON EVERY ELEMENT */
-    [data-testid="column"], [data-testid="stVerticalBlock"], .element-container {{
+    /* 2. FORCE FULL WIDTH ON MOBILE CONTAINERS */
+    [data-testid="stVerticalBlock"] > div {{
         width: 100% !important;
     }}
 
     .block-container {{
         max-width: 100% !important;
-        padding-left: 0.8rem !important;
-        padding-right: 0.8rem !important;
+        padding-top: 2rem !important; /* Space for the Share button */
+        padding-left: 0.7rem !important;
+        padding-right: 0.7rem !important;
     }}
 
     /* 3. Hide Labels */
     div[data-testid="stWidgetLabel"], label {{ display: none !important; }}
 
-    /* 4. Input Boxes */
+    /* 4. Input Boxes: Edge-to-Edge Bold Purple */
     .stTextInput > div > div > input, 
     .stTextArea > div > div > textarea {{
         background-color: #FEE2E9 !important;
         color: #B4A7D6 !important; 
         border: 3px solid #B4A7D6 !important;
         font-family: "Courier New", Courier, monospace !important;
-        font-size: 24px !important;
+        font-size: 22px !important;
         font-weight: 900 !important;
         -webkit-text-fill-color: #B4A7D6 !important;
         border-radius: 15px !important;
@@ -50,7 +51,6 @@ st.markdown(f"""
     /* 5. THE "ULTIMATE STRETCH" BUTTON FIX */
     div[data-testid="stButton"] {{
         width: 100% !important;
-        text-align: center !important;
     }}
 
     div[data-testid="stButton"] > button {{
@@ -60,29 +60,24 @@ st.markdown(f"""
         height: 100px !important; 
         border: none !important;
         margin-top: 10px !important;
-        box-shadow: 0px 8px 15px rgba(0,0,0,0.2) !important;
+        box-shadow: 0px 8px 15px rgba(0,0,0,0.15) !important;
         display: flex !important;
         justify-content: center !important;
         align-items: center !important;
     }}
 
-    /* Massive Text for Main Buttons */
+    /* Giant Pink Text for Buttons */
     div[data-testid="stButton"] > button p {{
         color: #FFD4E5 !important;
-        font-size: 48px !important; 
+        font-size: 45px !important; 
         font-weight: 900 !important;
         text-transform: uppercase !important;
         font-family: "Arial Black", Gadget, sans-serif !important;
-        line-height: 1.1 !important;
     }}
 
-    /* Adjustment for the longer Destroy button text */
-    div[data-testid="stButton"]:last-of-type > button {{
-        height: 80px !important;
-    }}
+    /* Adjust the long "Destroy" text size */
     div[data-testid="stButton"]:last-of-type > button p {{
         font-size: 26px !important;
-        letter-spacing: 1px !important;
     }}
 
     /* Result Box Style */
@@ -129,7 +124,7 @@ st.text_input("Hint", key="hint", placeholder="KEY HINT (Optional)")
 if os.path.exists("Kiss Chemistry.png"): st.image("Kiss Chemistry.png", use_container_width=True)
 user_input = st.text_area("Message", height=150, key="chem", placeholder="YOUR MESSAGE")
 
-# Buttons
+# Button stack
 kiss_btn = st.button("KISS")
 tell_btn = st.button("TELL")
 
@@ -154,7 +149,6 @@ if kw and user_input:
             decoded = "".join(chr((a_inv * (from_emoji(p) - b)) % U_MOD) for p in parts)
             st.markdown(f'<div class="result-box">Whisper: {decoded}</div>', unsafe_allow_html=True)
         except:
-            st.error("Chemistry Error! Check key or format.")
+            st.error("Chemistry Error! Check key.")
 
 if os.path.exists("LPB.png"): st.image("LPB.png", use_container_width=True)
-
