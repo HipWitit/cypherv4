@@ -29,13 +29,13 @@ def get_params(kw):
     while math.gcd(a, U_MOD) != 1: a += 1 
     return a, rng.randint(1000, 900000)
 
-# --- 2. THE CSS HAMMER ---
+# --- 2. THE CSS HAMMER (LOCKED BUTTONS) ---
 st.markdown(f"""
     <style>
     .stApp {{ background-color: #DBDCFF !important; }}
     div[data-testid="stWidgetLabel"], label {{ display: none !important; }}
     
-    /* Input Boxes */
+    /* Inputs */
     .stTextInput input, .stTextArea textarea {{
         background-color: #FEE2E9 !important;
         color: #B4A7D6 !important; 
@@ -45,17 +45,17 @@ st.markdown(f"""
         border-radius: 15px !important;
     }}
 
-    /* FORCE ALL BUTTONS TO BE THE SAME HUGE SIZE */
+    /* FIXED BUTTONS: No Columns, No Ovals */
     button {{
         width: 100% !important;
-        height: 90px !important;
-        min-height: 90px !important;
+        height: 85px !important;
+        min-height: 85px !important;
         background-color: #B4A7D6 !important; 
         color: #FFD4E5 !important;
         border-radius: 20px !important;
         border: none !important;
         box-shadow: 0px 6px 0px #9d8dbd !important;
-        margin-top: 10px !important;
+        margin-bottom: 12px !important;
     }}
 
     button p {{
@@ -65,16 +65,16 @@ st.markdown(f"""
         font-family: "Arial Black", sans-serif !important;
     }}
 
-    /* PINK OVERRIDE FOR SHARE BUTTON */
-    div[data-testid="stButton"] button:has(p:contains("SHARE")) {{
+    /* PINK SHARE BUTTON FIX */
+    /* Target the button containing the text "SHARE" */
+    button:has(p:contains("SHARE")) {{
         background-color: #FFD4E5 !important;
         box-shadow: 0px 6px 0px #e0b8c8 !important;
     }}
-    div[data-testid="stButton"] button:has(p:contains("SHARE")) p {{
+    button:has(p:contains("SHARE")) p {{
         color: #B4A7D6 !important;
     }}
 
-    /* Result Box */
     .result-box {{
         background-color: #FEE2E9; color: #B4A7D6; padding: 20px;
         border-radius: 20px; border: 4px solid #B4A7D6;
@@ -95,8 +95,7 @@ st.text_input("Hint", key="hint", placeholder="KEY HINT (Optional)")
 if os.path.exists("Kiss Chemistry.png"): st.image("Kiss Chemistry.png", width='stretch')
 user_input = st.text_area("Message", height=120, key="chem", placeholder="YOUR MESSAGE")
 
-# --- 4. THE BUTTONS ---
-# Stacked vertically so they stay full-width
+# Action Buttons
 if st.button("KISS"):
     if kw and user_input:
         a, b = get_params(kw)
@@ -110,21 +109,22 @@ if st.button("TELL"):
             parts = [p.strip() for p in user_input.split("  ") if p.strip()]
             st.session_state.out = "".join(chr((a_inv * (from_emoji(p) - b)) % U_MOD) for p in parts)
         except:
-            st.error("Chemistry Error!")
+            st.error("Error!")
 
-# Show Result & Share
+# Result & Share Area
 if st.session_state.out:
     st.markdown(f'<div class="result-box">{st.session_state.out}</div>', unsafe_allow_html=True)
+    
+    # SHARE BUTTON: Use Copy to Clipboard via simple HTML bridge
     if st.button("SHARE ✨"):
-        # Stable copy logic
-        st.toast("Copied to clipboard! Paste it anywhere. 🌸")
-        # We can't do the native phone menu reliably without JS, so we use Toast + Copy
-        st.write(f'<script>navigator.clipboard.writeText("{st.session_state.out}")</script>', unsafe_allow_html=True)
+        st.toast("Copied to Clipboard! 🌸")
+        st.write(f'''<script>navigator.clipboard.writeText("{st.session_state.out}")</script>''', unsafe_allow_html=True)
 
-# --- 5. THE BOTTOM STUFF ---
+# Destroy Button at the bottom
 if st.button("DESTROY CHEMISTRY"):
     st.session_state.out = ""
-    for k in ["lips", "chem", "hint"]: st.session_state[k] = ""
+    for k in ["lips", "chem", "hint"]: 
+        if k in st.session_state: st.session_state[k] = ""
     st.rerun()
 
 if os.path.exists("LPB.png"): st.image("LPB.png", width='stretch')
