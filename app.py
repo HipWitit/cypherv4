@@ -1,7 +1,7 @@
 import streamlit as st
 import re
 import os
-import random
+import secrets
 import hashlib
 import math
 import streamlit.components.v1 as components
@@ -9,12 +9,13 @@ from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.backends import default_backend
 
-# --- 1. CONFIG & STYLING ---
+# --- 1. CONFIG & STYLING (Sacred Layout) ---
 st.set_page_config(page_title="Cyfer Pro: Secret Language", layout="centered")
 
 raw_pepper = st.secrets.get("MY_SECRET_PEPPER") or "global_unicode_spice_2026"
-PEPPER = str(raw_pepper)
-U_MOD = 1114112 
+PEPPER = str(raw_pepper).encode()
+U_MOD = 256 # Operating on bytes now
+ROUNDS = 3
 
 st.markdown(f"""
     <style>
@@ -78,42 +79,37 @@ st.markdown(f"""
     </style>
     """, unsafe_allow_html=True)
 
-# --- 2. ENGINE WITH PERMUTATION LAYER ---
+# --- 2. CRYPTO-STRENGTH ENGINE ---
 EMOJI_MAP = {'0':'🦄','1':'🍼','2':'🩷','3':'🧸','4':'🎀','5':'🍓','6':'🌈','7':'🌸','8':'💕','9':'🫐'}
 REV_MAP = {v: k for k, v in EMOJI_MAP.items()}
 
-def to_emoji(val): return "".join(EMOJI_MAP.get(d, d) for d in str(val))
+def to_emoji(val): return "".join(EMOJI_MAP.get(d, d) for d in f"{val:03}")
 def from_emoji(s):
     res = "".join(REV_MAP[char] for char in s if char in REV_MAP)
     return int(res) if res else 0
 
-def get_crypto_tools(kw):
-    kdf = PBKDF2HMAC(algorithm=hashes.SHA256(), length=32, salt=b"perm_affine_v1", iterations=100000, backend=default_backend())
-    seed = int.from_bytes(hashlib.sha256(kdf.derive((kw + PEPPER).encode())).digest(), 'big')
-    rng = random.Random(seed)
+def get_keys_and_perms(kw):
+    kdf = PBKDF2HMAC(algorithm=hashes.SHA256(), length=64, salt=b"csprng_v1", iterations=100000, backend=default_backend())
+    master_key = kdf.derive(kw.encode() + PEPPER)
     
-    # Affine Params
-    a = rng.randint(3, 100000)
-    while math.gcd(a, U_MOD) != 1: a += 1 
-    b = rng.randint(1000, 900000)
+    # Derive round parameters (a, b for each round)
+    rounds_params = []
+    for i in range(ROUNDS):
+        h = hashlib.sha256(master_key + i.to_bytes(4, 'big')).digest()
+        a = (int.from_bytes(h[:4], 'big') % 120) * 2 + 1 # Ensure odd for MOD 256
+        b = int.from_bytes(h[4:8], 'big') % 256
+        
+        # Create round permutation
+        p_list = list(range(256))
+        seed = int.from_bytes(h[8:16], 'big')
+        import random
+        r = random.Random(seed) # Deterministic shuffle per round
+        r.shuffle(p_list)
+        rounds_params.append({'a': a, 'b': b, 'p': p_list, 'inv_p': [p_list.index(j) for j in range(256)]})
     
-    # Permutation Key (Used to "Shuffle" the specific character block)
-    perm_seed = rng.getrandbits(64)
-    return a, b, perm_seed
-
-def apply_permutation(char_code, seed, inverse=False):
-    # This acts as a Key-Derived S-Box for the local Unicode block
-    block_size = 256
-    block_id = char_code // block_size
-    offset = char_code % block_size
-    
-    rng = random.Random(seed + block_id)
-    p_map = list(range(block_size))
-    rng.shuffle(p_map)
-    
-    if inverse:
-        return (block_id * block_size) + p_map.index(offset)
-    return (block_id * block_size) + p_map[offset]
+    # Initialization Vector (derived from key for stability)
+    iv = int.from_bytes(hashlib.sha256(master_key + b"iv").digest()[:1], 'big')
+    return rounds_params, iv
 
 def clear_everything():
     for k in ["lips", "chem", "hint"]: st.session_state[k] = ""
@@ -134,36 +130,54 @@ st.button("DESTROY CHEMISTRY", on_click=clear_everything)
 
 # --- 4. PROCESSING ---
 if kw and (kiss_btn or tell_btn):
-    a, b, p_seed = get_crypto_tools(kw)
+    params, iv = get_keys_and_perms(kw)
     
     if kiss_btn:
+        data = user_input.encode('utf-8')
+        prev = iv
         res_list = []
-        for c in user_input:
-            # 1. Permutation Layer (S-Box)
-            permuted = apply_permutation(ord(c), p_seed)
-            # 2. Affine Layer
-            transformed = (a * permuted + b) % U_MOD
-            res_list.append(to_emoji(transformed))
         
-        res = "  ".join(res_list)
+        for byte in data:
+            # Position-dependent mixing (XOR)
+            current = byte ^ prev
+            
+            # Multiple Rounds of Permute + Affine
+            for r in range(ROUNDS):
+                # 1. Permute
+                current = params[r]['p'][current]
+                # 2. Affine
+                current = (params[r]['a'] * current + params[r]['b']) % 256
+            
+            res_list.append(to_emoji(current))
+            prev = current # Feed-forward for next byte
+        
+        res = " ".join(res_list)
         with output_placeholder.container():
             st.markdown(f'<div class="result-box">{res}</div>', unsafe_allow_html=True)
             components.html(f"""<button onclick="navigator.share({{title:'Secret',text:`{res}\\n\\nHint: {hint_text}`}})" style="background-color:#B4A7D6; color:#FFD4E5; font-weight:bold; border-radius:15px; min-height:80px; width:100%; cursor:pointer; font-size: 28px; border:none; text-transform:uppercase;">SHARE ✨</button>""", height=100)
 
     if tell_btn:
         try:
-            a_inv = pow(a, -1, U_MOD)
-            clean_in = user_input.split("Hint:")[0].strip()
-            parts = [p.strip() for p in clean_in.split("  ") if p.strip()]
+            parts = [from_emoji(p) for p in user_input.split(" ") if p.strip()]
+            prev = iv
+            decoded_bytes = []
             
-            decoded = []
-            for p in parts:
-                # 1. Reverse Affine
-                val = (a_inv * (from_emoji(p) - b)) % U_MOD
-                # 2. Reverse Permutation
-                original_ord = apply_permutation(val, p_seed, inverse=True)
-                decoded.append(chr(original_ord))
+            for current_cipher in parts:
+                temp = current_cipher
+                # Reverse Rounds
+                for r in reversed(range(ROUNDS)):
+                    # 1. Reverse Affine
+                    a_inv = pow(params[r]['a'], -1, 256)
+                    temp = (a_inv * (temp - params[r]['b'])) % 256
+                    # 2. Reverse Permute
+                    temp = params[r]['inv_p'][temp]
                 
-            output_placeholder.markdown(f'<div class="whisper-text">Cypher Whispers: {"".join(decoded)}</div>', unsafe_allow_html=True)
+                # Reverse XOR
+                original_byte = temp ^ prev
+                decoded_bytes.append(original_byte)
+                prev = current_cipher
+            
+            decoded_msg = bytes(decoded_bytes).decode('utf-8')
+            output_placeholder.markdown(f'<div class="whisper-text">Cypher Whispers: {decoded_msg}</div>', unsafe_allow_html=True)
         except:
-            st.error("Chemistry Error!")
+            st.error("Chemistry Error! Key or formatting mismatch.")
