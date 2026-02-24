@@ -18,22 +18,18 @@ MOD = 127
 st.markdown(f"""
     <style>
     /* Global alignment */
-    .stApp {{ 
-        background-color: #DBDCFF !important;
-        display: flex;
-        justify-content: center;
-    }}
+    .stApp {{ background-color: #DBDCFF !important; }}
     
     /* Center all widget containers */
-    div.stButton, div.stTextInput, div.stTextArea, div.stImage {{
-        text-align: center !important;
-        margin: 0 auto !important;
+    [data-testid="stVerticalBlock"] > div {{
         width: 100% !important;
+        display: flex !important;
+        justify-content: center !important;
     }}
 
     div[data-testid="stWidgetLabel"], label {{ display: none !important; }}
 
-    /* TEXT BOX & INPUT - DARK PURPLE TEXT */
+    /* TEXT BOXES - DARK PURPLE TEXT */
     .stTextInput > div > div > input, 
     .stTextArea > div > div > textarea {{
         background-color: #FEE2E9 !important;
@@ -42,33 +38,38 @@ st.markdown(f"""
         font-family: "Courier New", monospace !important;
         font-size: 18px !important;
         font-weight: bold !important;
-        text-align: center !important; /* Centers the typed text too! */
+        text-align: center !important;
     }}
 
-    /* ACTION BUTTONS (KISS, TELL, DESTROY) - FULL WIDTH & CENTERED */
+    /* ACTION BUTTONS - FORCING RECTANGLES */
     div.stButton > button {{
         width: 100% !important;
-        min-height: 85px !important; 
-        background-color: #7E60BF !important; 
-        color: #FFE1EB !important; 
+        height: 100px !important; /* Fixed height, NO squishing */
+        min-height: 100px !important;
+        background-color: #7E60BF !important; /* Solid Deep Purple */
+        color: #FFE1EB !important; /* Bright Pink Text */
         border-radius: 20px !important;
         border: none !important;
-        box-shadow: 0px 5px 0px #5E448F !important;
-        margin: 15px 0 !important;
+        box-shadow: 0px 6px 0px #5E448F !important;
         display: block !important;
+        margin: 10px 0 !important;
     }}
 
     div.stButton > button p {{
-        font-size: 32px !important; 
-        font-weight: 800 !important;
+        font-size: 36px !important; 
+        font-weight: 900 !important;
         text-transform: uppercase !important;
-        margin: 0 !important;
     }}
 
-    /* Specific style for DESTROY to keep it looking consistent but centered */
+    /* DESTROY BUTTON - LIGHTER PURPLE BUT FULL WIDTH */
     div[data-testid="stVerticalBlock"] > div:last-child .stButton > button {{
         background-color: #B4A7D6 !important;
+        height: 70px !important;
+        min-height: 70px !important;
         box-shadow: 0px 4px 0px #8E7DB3 !important;
+    }}
+    div[data-testid="stVerticalBlock"] > div:last-child .stButton > button p {{
+        font-size: 24px !important;
     }}
 
     /* RESULT BOX */
@@ -78,12 +79,10 @@ st.markdown(f"""
         padding: 20px;
         border-radius: 20px;
         border: 3px solid #7E60BF;
-        margin: 20px 0;
-        font-weight: bold;
-        font-family: monospace;
         text-align: center;
         word-break: break-all;
         font-size: 20px;
+        font-weight: bold;
     }}
     </style>
     """, unsafe_allow_html=True)
@@ -97,11 +96,9 @@ def get_char_coord(char):
 
 def get_fernet_sbox(kw):
     kdf = PBKDF2HMAC(algorithm=hashes.SHA256(), length=32, salt=b"stable_v4", iterations=100000, backend=default_backend())
-    derived = kdf.derive((kw + PEPPER).encode())
-    seed = int.from_bytes(hashlib.sha256(derived).digest(), 'big')
+    seed = int.from_bytes(hashlib.sha256(kdf.derive((kw + PEPPER).encode())).digest(), 'big')
     rng = random.Random(seed)
-    sbox = list(range(MOD))
-    rng.shuffle(sbox)
+    sbox = list(range(MOD)); rng.shuffle(sbox)
     return sbox, [sbox.index(i) for i in range(MOD)]
 
 def get_matrix_elements(kw):
@@ -115,10 +112,7 @@ def modInverse(n, m=MOD):
     return None
 
 def apply_sweet_parity(val_str):
-    def replacer(match):
-        digit = match.group(2)
-        return ('🍭' if int(digit) % 2 == 0 else '🍬') + digit
-    return re.sub(r'(-)(\d)', replacer, val_str)
+    return re.sub(r'(-)(\d)', lambda m: ('🍭' if int(m.group(2)) % 2 == 0 else '🍬') + m.group(2), val_str)
 
 # --- 3. UI LAYOUT ---
 if os.path.exists("CYPHER.png"): st.image("CYPHER.png")
@@ -126,7 +120,6 @@ if os.path.exists("Lock Lips.png"): st.image("Lock Lips.png")
 
 kw = st.text_input("Key", type="password", key="lips", placeholder="SECRET KEY").strip()
 
-# Chemistry Level Bar
 if kw:
     strength = min((len(kw) / 12.0) + (0.1 if any(c.isdigit() for c in kw) else 0), 1.0)
     st.write(f"🧪 **CHEMISTRY LEVEL:** {int(strength*100)}%")
@@ -172,20 +165,15 @@ if kw and (kiss_btn or tell_btn):
 
         if tell_btn:
             try:
-                clean_in = user_input.split("Hint:")[0].strip()
-                h_p, m_p = clean_in.split("|")
+                h_p, m_p = user_input.split("Hint:")[0].strip().split("|")
                 rev_map = {v: k for k, v in EMOJI_MAP.items()}
                 def e_to_int(s):
                     s = "".join(rev_map.get(ch, ch) for ch in s)
                     return int(s.replace('🍭', '-').replace('🍬', '-'))
-                
-                parts = h_p.strip().split(",")
-                cx, cy = e_to_int(parts[0][::-1]), e_to_int(parts[1][::-1])
-                
+                cx, cy = e_to_int(h_p.split(",")[0][::-1]), e_to_int(h_p.split(",")[1][::-1])
                 inv_a, inv_b = (d_m * det_inv) % MOD, (-b_m * det_inv) % MOD
                 inv_c, inv_d = (-c_m * det_inv) % MOD, (a_m * det_inv) % MOD
                 def resolve(x, y): return chr(inv_sbox[(inv_a*x + inv_b*y)%MOD])
-                
                 decoded = [resolve(cx, cy)]
                 for i, m in enumerate(re.findall(r"\(([^)]+)\)", m_p)):
                     dx_e, dy_e = m.split(",")
@@ -200,17 +188,16 @@ if kw and (kiss_btn or tell_btn):
             components.html(f"""
                 <button onclick="navigator.share({{title:'Secret',text:`{res}\\n\\nHint: {hint_text}`}})" 
                 style="background-color:#FEE2E9; color:#7E60BF; font-weight:bold; border-radius:20px; 
-                min-height:85px; width:100%; cursor:pointer; font-size: 28px; border:3px solid #7E60BF; 
-                text-transform:uppercase; font-family:sans-serif; margin-top:10px;">
+                height:100px; width:100%; cursor:pointer; font-size: 32px; border:3px solid #7E60BF; 
+                text-transform:uppercase; font-family:sans-serif;">
                 SHARE ✨</button>
-            """, height=110)
+            """, height=120)
 
 # --- 5. DESTROY ---
 if st.button("DESTROY CHEMISTRY"):
-    for key in st.session_state.keys():
-        del st.session_state[key]
+    st.session_state.clear()
     st.rerun()
 
 if os.path.exists("LPB.png"):
     st.image("LPB.png", width=250)
-    st.markdown('<div style="color:#7E60BF; font-family:monospace; font-weight:bold; font-size:22px; margin-top:10px; text-align:center;">CREATED BY</div>', unsafe_allow_html=True)
+    st.markdown('<div style="color:#7E60BF; font-family:monospace; font-weight:bold; font-size:22px; text-align:center;">CREATED BY</div>', unsafe_allow_html=True)
