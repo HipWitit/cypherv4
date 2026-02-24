@@ -11,7 +11,7 @@ raw_pepper = st.secrets.get("MY_SECRET_PEPPER") or "global_unicode_spice_2026"
 PEPPER = str(raw_pepper)
 U_MOD = 1114112 
 
-# Mapping
+# Custom Emoji Map
 EMOJI_MAP = {'0':'🦄','1':'🍼','2':'🩷','3':'🧸','4':'🎀','5':'🍓','6':'🌈','7':'🌸','8':'💕','9':'🫐'}
 REV_MAP = {v: k for k, v in EMOJI_MAP.items()}
 
@@ -30,62 +30,57 @@ st.markdown(f"""
         color: #B4A7D6 !important; 
         border: 3px solid #B4A7D6 !important;
         font-family: "Courier New", Courier, monospace !important;
-        font-size: 22px !important;
+        font-size: 24px !important;
         font-weight: 900 !important;
         -webkit-text-fill-color: #B4A7D6 !important;
         border-radius: 15px !important;
     }}
 
-    /* FORCE FULL-WIDTH BUTTONS */
-    div.stButton {{
+    /* THE BUTTON FIX: Force container and button to be massive */
+    div[data-testid="stButton"], div[data-testid="stButton"] > button {{
         width: 100% !important;
-    }}
-
-    div.stButton > button {{
-        background-color: #B4A7D6 !important; 
-        color: #FFD4E5 !important;
-        border-radius: 20px !important;
-        
-        /* Size Fixes */
-        width: 100% !important;
-        min-width: 100% !important;
-        height: 100px !important; 
-        
-        /* Font Fixes */
-        font-size: 45px !important; 
-        font-weight: 900 !important;
-        text-transform: uppercase;
-        
-        border: none !important;
-        margin-top: 15px !important;
-        box-shadow: 0px 6px 15px rgba(0,0,0,0.2) !important;
         display: block !important;
     }}
 
-    /* Specific smaller font for the Destroy button */
-    div.stButton:last-of-type > button {{
-        height: 70px !important;
-        font-size: 24px !important;
-        background-color: #D1C4E9 !important;
+    div[data-testid="stButton"] > button {{
+        background-color: #B4A7D6 !important; 
+        color: #FFD4E5 !important;
+        border-radius: 25px !important;
+        
+        /* Height and Font */
+        height: 120px !important; 
+        font-size: 50px !important; 
+        font-weight: 900 !important;
+        line-height: 1.2 !important;
+        
+        text-transform: uppercase;
+        border: none !important;
+        margin-top: 15px !important;
+        box-shadow: 0px 8px 15px rgba(0,0,0,0.2) !important;
+        transition: transform 0.1s ease-in-out;
     }}
 
-    /* Results Box */
+    div[data-testid="stButton"] > button:active {{
+        transform: scale(0.98);
+    }}
+
+    /* Result Box Style */
     .result-box {{
         background-color: #FEE2E9; 
         color: #B4A7D6 !important;
-        padding: 20px;
+        padding: 25px;
         border-radius: 15px;
         border: 3px solid #B4A7D6;
         word-wrap: break-word;
         font-weight: 900;
         font-family: "Courier New", Courier, monospace !important;
-        font-size: 20px;
-        margin-top: 20px;
+        font-size: 22px;
+        margin-top: 25px;
     }}
     </style>
     """, unsafe_allow_html=True)
 
-# --- 2. ENGINE ---
+# --- 2. THE ENGINE ---
 def to_emoji(val): return "".join(EMOJI_MAP.get(d, d) for d in str(val))
 def from_emoji(s): return int("".join(REV_MAP.get(c, c) for c in s))
 
@@ -112,7 +107,7 @@ st.text_input("Hint", key="hint", placeholder="KEY HINT (Optional)")
 if os.path.exists("Kiss Chemistry.png"): st.image("Kiss Chemistry.png")
 user_input = st.text_area("Message", height=150, key="chem", placeholder="YOUR MESSAGE")
 
-# We list them one by one to ensure they stack and take 100% width
+# Directly stacking buttons (No columns) ensures they use the 100% width CSS
 kiss_btn = st.button("KISS")
 tell_btn = st.button("TELL")
 
