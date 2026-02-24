@@ -4,7 +4,7 @@ from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.backends import default_backend
 
-# --- 1. CONFIG & EXTREME CSS ---
+# --- 1. CONFIG & REFINED CSS ---
 st.set_page_config(page_title="Cyfer Pro", layout="centered")
 
 raw_pepper = st.secrets.get("MY_SECRET_PEPPER") or "global_unicode_spice_2026"
@@ -17,60 +17,66 @@ REV_MAP = {v: k for k, v in EMOJI_MAP.items()}
 
 st.markdown(f"""
     <style>
-    /* 1. FORCE THE APP TO USE FULL WIDTH */
+    /* 1. ELIMINATE ALL PADDING & CENTER ALIGNMENT ISSUES */
     .block-container {{
         padding-top: 1rem !important;
-        padding-left: 1rem !important;
-        padding-right: 1rem !important;
+        padding-left: 0.5rem !important;
+        padding-right: 0.5rem !important;
         max-width: 100% !important;
     }}
 
-    /* Hide Streamlit elements for a clean look */
-    #MainMenu, footer, header {{visibility: hidden;}}
+    /* Hide top bar for app feel */
+    header, footer {{visibility: hidden !important;}}
 
     .stApp {{ background-color: #DBDCFF !important; }}
     div[data-testid="stWidgetLabel"], label {{ display: none !important; }}
 
-    /* 2. Input Boxes: Edge-to-Edge Bold Purple */
+    /* 2. Input Boxes: Bold & Clear */
     .stTextInput > div > div > input, 
     .stTextArea > div > div > textarea {{
         background-color: #FEE2E9 !important;
         color: #B4A7D6 !important; 
         border: 3px solid #B4A7D6 !important;
         font-family: "Courier New", Courier, monospace !important;
-        font-size: 26px !important;
+        font-size: 24px !important;
         font-weight: 900 !important;
         -webkit-text-fill-color: #B4A7D6 !important;
         border-radius: 15px !important;
     }}
 
-    /* 3. THE BUTTON REWRITE: Giant Bold Purple Text */
-    div[data-testid="stButton"] {{
+    /* 3. THE "STRETCH" FIX: Target the container of the button */
+    div.stButton {{
         width: 100% !important;
     }}
 
-    div[data-testid="stButton"] > button {{
-        background-color: #B4A7D6 !important; 
-        border-radius: 30px !important;
-        height: 100px !important; 
+    div.stButton > button {{
         width: 100% !important;
+        background-color: #B4A7D6 !important; 
+        border-radius: 20px !important;
+        height: 100px !important; 
         border: none !important;
         margin-top: 10px !important;
-        box-shadow: 0px 8px 15px rgba(0,0,0,0.2) !important;
+        box-shadow: 0px 6px 12px rgba(0,0,0,0.15) !important;
+        
+        /* Force text to center and be massive */
+        display: flex !important;
+        justify-content: center !important;
+        align-items: center !important;
     }}
 
-    /* This targets the actual text inside the button */
-    div[data-testid="stButton"] > button p {{
-        color: #FFD4E5 !important; /* Your signature pink */
-        font-size: 48px !important; /* Massive font */
+    /* Target the text element specifically */
+    div.stButton > button p {{
+        color: #FFD4E5 !important;
+        font-size: 50px !important; 
         font-weight: 900 !important;
-        font-family: "Arial Black", Gadget, sans-serif !important;
-        text-transform: uppercase;
-        letter-spacing: 2px;
+        text-transform: uppercase !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        line-height: 1 !important;
     }}
 
-    /* Smaller text for the Destroy button */
-    div[data-testid="stButton"]:last-of-type > button p {{
+    /* Smaller text for Destroy button so it fits */
+    div.stButton:last-of-type > button p {{
         font-size: 28px !important;
     }}
 
@@ -78,19 +84,20 @@ st.markdown(f"""
     .result-box {{
         background-color: #FEE2E9; 
         color: #B4A7D6 !important;
-        padding: 25px;
+        padding: 20px;
         border-radius: 15px;
         border: 3px solid #B4A7D6;
         word-wrap: break-word;
         font-weight: 900;
         font-family: "Courier New", Courier, monospace !important;
-        font-size: 22px;
-        margin-top: 25px;
+        font-size: 20px;
+        margin-top: 15px;
+        width: 100%;
     }}
     </style>
     """, unsafe_allow_html=True)
 
-# --- 2. THE ENGINE ---
+# --- 2. ENGINE ---
 def to_emoji(val): return "".join(EMOJI_MAP.get(d, d) for d in str(val))
 def from_emoji(s): return int("".join(REV_MAP.get(c, c) for c in s))
 
@@ -117,7 +124,7 @@ st.text_input("Hint", key="hint", placeholder="KEY HINT (Optional)")
 if os.path.exists("Kiss Chemistry.png"): st.image("Kiss Chemistry.png", use_container_width=True)
 user_input = st.text_area("Message", height=150, key="chem", placeholder="YOUR MESSAGE")
 
-# Stacking buttons
+# We stack them one by one to avoid column-shrinkage
 kiss_btn = st.button("KISS")
 tell_btn = st.button("TELL")
 
