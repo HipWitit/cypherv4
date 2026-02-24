@@ -17,9 +17,21 @@ REV_MAP = {v: k for k, v in EMOJI_MAP.items()}
 
 st.markdown(f"""
     <style>
-    /* 1. Main Background */
+    /* 1. Main Background & Header Restoration */
     .stApp {{ background-color: #DBDCFF !important; }}
     
+    /* Force the Header to be visible and styled */
+    header[data-testid="stHeader"] {{
+        background-color: rgba(219, 220, 255, 0.8) !important;
+        visibility: visible !important;
+        display: block !important;
+    }}
+
+    /* Ensure 'Share' and other header icons are visible */
+    header[data-testid="stHeader"] button {{
+        color: #B4A7D6 !important;
+    }}
+
     /* 2. FORCE FULL WIDTH ON MOBILE CONTAINERS */
     [data-testid="stVerticalBlock"] > div {{
         width: 100% !important;
@@ -27,7 +39,7 @@ st.markdown(f"""
 
     .block-container {{
         max-width: 100% !important;
-        padding-top: 2rem !important; /* Space for the Share button */
+        padding-top: 3.5rem !important; /* Extra space so header doesn't overlap content */
         padding-left: 0.7rem !important;
         padding-right: 0.7rem !important;
     }}
@@ -35,7 +47,7 @@ st.markdown(f"""
     /* 3. Hide Labels */
     div[data-testid="stWidgetLabel"], label {{ display: none !important; }}
 
-    /* 4. Input Boxes: Edge-to-Edge Bold Purple */
+    /* 4. Input Boxes */
     .stTextInput > div > div > input, 
     .stTextArea > div > div > textarea {{
         background-color: #FEE2E9 !important;
