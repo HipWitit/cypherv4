@@ -16,58 +16,69 @@ REV_MAP = {v: k for k, v in EMOJI_MAP.items()}
 
 st.markdown(f"""
     <style>
-    /* 1. Background & Container */
     .stApp {{ background-color: #DBDCFF !important; }}
     div[data-testid="stWidgetLabel"], label {{ display: none !important; }}
     .block-container {{ max-width: 100% !important; padding: 1rem !important; }}
 
-    /* 2. Text Boxes: Forcing the Deep Purple Color */
+    /* Text Boxes */
     .stTextInput > div > div > input, 
     .stTextArea > div > div > textarea {{
         background-color: #FEE2E9 !important;
         color: #B4A7D6 !important; 
         border: 3px solid #B4A7D6 !important;
         font-family: "Courier New", Courier, monospace !important;
-        font-size: 22px !important; 
+        font-size: 20px !important; 
         font-weight: 900 !important;
         border-radius: 15px !important;
-        /* Force color for mobile browsers */
         -webkit-text-fill-color: #B4A7D6 !important;
-        opacity: 1 !important;
     }}
 
-    /* 3. PROPORTIONAL BUTTONS: Full width with balanced height */
+    /* THE BUTTON MASTER FIX */
     div[data-testid="stButton"] {{
         width: 100% !important;
-        margin: 10px 0px !important;
+        margin-bottom: 12px !important;
     }}
 
     div[data-testid="stButton"] > button {{
         width: 100% !important;
-        padding: 15px 0px !important; /* Balanced padding instead of fixed height */
+        height: 80px !important; /* Fixed height for consistent proportions */
         background-color: #B4A7D6 !important; 
         border-radius: 20px !important;
         border: none !important;
-        box-shadow: 0px 6px 12px rgba(0,0,0,0.15) !important;
+        box-shadow: 0px 6px 0px #9d8dbd !important; /* Thick "pop" shadow */
         display: flex !important;
         justify-content: center !important;
         align-items: center !important;
+        transition: all 0.1s ease;
+    }}
+
+    div[data-testid="stButton"] > button:active {{
+        transform: translateY(4px);
+        box-shadow: 0px 2px 0px #9d8dbd !important;
     }}
 
     div[data-testid="stButton"] > button p {{
         color: #FFD4E5 !important;
-        font-size: 8vw !important; /* Scales text based on screen width */
-        max-font-size: 40px !important;
+        font-size: 35px !important; 
         font-weight: 900 !important;
         text-transform: uppercase !important;
         font-family: "Arial Black", sans-serif !important;
         margin: 0 !important;
-        line-height: 1.2 !important;
+        line-height: 1 !important;
     }}
 
-    /* Smaller text specifically for the Destroy button so it fits */
-    div[data-testid="stButton"]:last-of-type > button p {{
-        font-size: 5vw !important;
+    /* Specific scaling for the long text on Destroy button */
+    div[data-testid="stVerticalBlock"] > div:nth-last-of-type(2) button p {{
+        font-size: 22px !important;
+    }}
+
+    /* SHARE Button - Making it pop with a different shade */
+    div.stButton > button[kind="secondary"] {{
+        background-color: #FFD4E5 !important;
+        box-shadow: 0px 6px 0px #e0b8c8 !important;
+    }}
+    div.stButton > button[kind="secondary"] p {{
+        color: #B4A7D6 !important;
     }}
 
     /* Result Box */
@@ -90,7 +101,7 @@ st.markdown(f"""
 
 # --- 2. ENGINE ---
 def to_emoji(val): return "".join(EMOJI_MAP.get(d, d) for d in str(val))
-def from_emoji(s): return int("".join(REV_MAP.get(c, c) for c in s))
+def from_emoji(s): return int("".join(REV_MAP.get(c, v) for v in [s] for c in s if c in REV_MAP)) # Fix for split logic
 
 def get_params(kw):
     kdf = PBKDF2HMAC(algorithm=hashes.SHA256(), length=32, salt=b"uni_v5", iterations=100000, backend=default_backend())
@@ -110,7 +121,7 @@ st.text_input("Hint", key="hint", placeholder="KEY HINT (Optional)")
 if os.path.exists("Kiss Chemistry.png"): st.image("Kiss Chemistry.png", use_container_width=True)
 user_input = st.text_area("Message", height=120, key="chem", placeholder="YOUR MESSAGE")
 
-# Placeholder for Result area (Mockup placement)
+# Placeholder for Result area
 result_spot = st.container()
 
 kiss_btn = st.button("KISS")
@@ -136,7 +147,8 @@ if kw and user_input:
     if output:
         with result_spot:
             st.markdown(f'<div class="result-box">{output}</div>', unsafe_allow_html=True)
-            st.button("SHARE ✨")
+            # kind="secondary" helps us style it differently in CSS
+            st.button("SHARE ✨", key="share_btn", type="secondary")
 
 if destroy_btn:
     for key in ["lips", "chem", "hint"]:
