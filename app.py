@@ -16,45 +16,58 @@ REV_MAP = {v: k for k, v in EMOJI_MAP.items()}
 
 st.markdown(f"""
     <style>
+    /* 1. Background & Container */
     .stApp {{ background-color: #DBDCFF !important; }}
     div[data-testid="stWidgetLabel"], label {{ display: none !important; }}
     .block-container {{ max-width: 100% !important; padding: 1rem !important; }}
 
-    /* Inputs */
-    .stTextInput > div > div > input, .stTextArea > div > div > textarea {{
+    /* 2. Text Boxes: Forcing the Deep Purple Color */
+    .stTextInput > div > div > input, 
+    .stTextArea > div > div > textarea {{
         background-color: #FEE2E9 !important;
         color: #B4A7D6 !important; 
         border: 3px solid #B4A7D6 !important;
         font-family: "Courier New", Courier, monospace !important;
-        font-size: 20px !important; font-weight: 900 !important;
+        font-size: 22px !important; 
+        font-weight: 900 !important;
         border-radius: 15px !important;
+        /* Force color for mobile browsers */
+        -webkit-text-fill-color: #B4A7D6 !important;
+        opacity: 1 !important;
     }}
 
-    /* THE BUTTON FIX: Proportional & Full Width */
+    /* 3. PROPORTIONAL BUTTONS: Full width with balanced height */
     div[data-testid="stButton"] {{
         width: 100% !important;
-        margin: 0px !important;
-        padding: 5px 0px !important;
+        margin: 10px 0px !important;
     }}
 
     div[data-testid="stButton"] > button {{
         width: 100% !important;
-        min-height: 70px !important; /* Fixed height but smaller to prevent squishing */
+        padding: 15px 0px !important; /* Balanced padding instead of fixed height */
         background-color: #B4A7D6 !important; 
         border-radius: 20px !important;
         border: none !important;
-        box-shadow: 0px 5px 10px rgba(0,0,0,0.1) !important;
-        display: block !important; /* Changed from flex to block for stability */
+        box-shadow: 0px 6px 12px rgba(0,0,0,0.15) !important;
+        display: flex !important;
+        justify-content: center !important;
+        align-items: center !important;
     }}
 
     div[data-testid="stButton"] > button p {{
         color: #FFD4E5 !important;
-        font-size: 32px !important; /* Slightly smaller for better fit */
+        font-size: 8vw !important; /* Scales text based on screen width */
+        max-font-size: 40px !important;
         font-weight: 900 !important;
         text-transform: uppercase !important;
         font-family: "Arial Black", sans-serif !important;
         margin: 0 !important;
-        line-height: 70px !important; /* Centers text vertically */
+        line-height: 1.2 !important;
+    }}
+
+    /* Smaller text specifically for the Destroy button so it fits */
+    div[data-testid="stButton"]:last-of-type > button p {{
+        font-size: 5vw !important;
     }}
 
     /* Result Box */
@@ -70,6 +83,7 @@ st.markdown(f"""
         font-size: 22px;
         margin-bottom: 15px;
         text-align: center;
+        -webkit-text-fill-color: #B4A7D6 !important;
     }}
     </style>
     """, unsafe_allow_html=True)
@@ -96,10 +110,9 @@ st.text_input("Hint", key="hint", placeholder="KEY HINT (Optional)")
 if os.path.exists("Kiss Chemistry.png"): st.image("Kiss Chemistry.png", use_container_width=True)
 user_input = st.text_area("Message", height=120, key="chem", placeholder="YOUR MESSAGE")
 
-# Placeholder for Result/Share area
+# Placeholder for Result area (Mockup placement)
 result_spot = st.container()
 
-# Action Buttons
 kiss_btn = st.button("KISS")
 tell_btn = st.button("TELL")
 destroy_btn = st.button("DESTROY CHEMISTRY")
