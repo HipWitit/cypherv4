@@ -1,11 +1,10 @@
 import streamlit as st
-import streamlit.components.v1 as components
 import os, random, hashlib, math
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.backends import default_backend
 
-# --- 1. CONFIG ---
+# --- 1. CONFIG & STABLE CSS ---
 st.set_page_config(page_title="Cyfer Pro", layout="centered")
 
 raw_pepper = st.secrets.get("MY_SECRET_PEPPER") or "global_unicode_spice_2026"
@@ -15,17 +14,16 @@ U_MOD = 1114112
 EMOJI_MAP = {'0':'🦄','1':'🍼','2':'🩷','3':'🧸','4':'🎀','5':'🍓','6':'🌈','7':'🌸','8':'💕','9':'🫐'}
 REV_MAP = {v: k for k, v in EMOJI_MAP.items()}
 
-if "result_output" not in st.session_state:
-    st.session_state.result_output = ""
+# Memorize the result so it doesn't vanish
+if "out" not in st.session_state:
+    st.session_state.out = ""
 
-# --- 2. GLOBAL CSS OVERRIDE ---
 st.markdown(f"""
     <style>
     .stApp {{ background-color: #DBDCFF !important; }}
     div[data-testid="stWidgetLabel"], label {{ display: none !important; }}
-    .block-container {{ max-width: 100% !important; padding: 1rem !important; }}
-
-    /* Inputs */
+    
+    /* Input Boxes */
     .stTextInput input, .stTextArea textarea {{
         background-color: #FEE2E9 !important;
         color: #B4A7D6 !important; 
@@ -36,38 +34,23 @@ st.markdown(f"""
         -webkit-text-fill-color: #B4A7D6 !important;
     }}
 
-    /* THE BUTTON FIX: Force 100% width and 90px height globally */
-    button {{
+    /* THE BUTTON FIX: No flex, no columns, just blocks */
+    div.stButton > button, div.stDownloadButton > button {{
         width: 100% !important;
-        height: 90px !important;
-        min-height: 90px !important;
+        height: 80px !important;
         background-color: #B4A7D6 !important; 
         color: #FFD4E5 !important;
         border-radius: 20px !important;
         border: none !important;
         box-shadow: 0px 6px 0px #9d8dbd !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        margin-bottom: 15px !important;
+        margin-bottom: 10px !important;
     }}
 
-    button p {{
-        font-size: 32px !important; 
+    div.stButton > button p, div.stDownloadButton > button p {{
+        font-size: 30px !important; 
         font-weight: 900 !important;
         text-transform: uppercase !important;
         font-family: "Arial Black", sans-serif !important;
-        color: #FFD4E5 !important;
-    }}
-
-    /* CUSTOM PINK FOR SHARE */
-    /* Target the button based on the text content */
-    button:has(p:contains("SHARE")) {{
-        background-color: #FFD4E5 !important;
-        box-shadow: 0px 6px 0px #e0b8c8 !important;
-    }}
-    button:has(p:contains("SHARE")) p {{
-        color: #B4A7D6 !important;
     }}
 
     /* Result Box */
@@ -78,38 +61,16 @@ st.markdown(f"""
         border-radius: 20px;
         border: 4px solid #B4A7D6;
         word-wrap: break-word;
-        font-weight: 900;
         font-family: "Courier New", monospace !important;
         font-size: 22px;
-        margin-bottom: 20px;
+        margin-bottom: 15px;
         text-align: center;
         -webkit-text-fill-color: #B4A7D6 !important;
     }}
     </style>
     """, unsafe_allow_html=True)
 
-# --- 3. NATIVE SHARE BRIDGE ---
-def trigger_share(text_to_share):
-    # This JS runs in the browser to trigger the actual phone share menu
-    components.html(
-        f"""
-        <script>
-        const shareData = {{
-            title: 'Cyfer Message',
-            text: '{text_to_share}'
-        }};
-        if (navigator.share) {{
-            navigator.share(shareData).catch((err) => console.log(err));
-        }} else {{
-            navigator.clipboard.writeText('{text_to_share}');
-            alert('Share menu not supported - Message Copied to Clipboard!');
-        }}
-        </script>
-        """,
-        height=0,
-    )
-
-# --- 4. ENGINE ---
+# --- 2. ENGINE ---
 def to_emoji(val): return "".join(EMOJI_MAP.get(d, d) for d in str(val))
 def from_emoji(s):
     res = "".join(REV_MAP[char] for char in s if char in REV_MAP)
@@ -123,46 +84,40 @@ def get_params(kw):
     while math.gcd(a, U_MOD) != 1: a += 1 
     return a, rng.randint(1000, 900000)
 
-# --- 5. UI LAYOUT ---
-if os.path.exists("CYPHER.png"): st.image("CYPHER.png", width='stretch')
-if os.path.exists("Lock Lips.png"): st.image("Lock Lips.png", width='stretch')
+# --- 3. UI ---
+if os.path.exists("CYPHER.png"): st.image("CYPHER.png", width=600)
+if os.path.exists("Lock Lips.png"): st.image("Lock Lips.png", width=600)
 
-kw = st.text_input("Key", type="password", key="lips", placeholder="SECRET KEY").strip()
-st.text_input("Hint", key="hint", placeholder="KEY HINT (Optional)")
+kw = st.text_input("K", type="password", key="lips", placeholder="SECRET KEY")
+st.text_input("H", key="hint", placeholder="KEY HINT (Optional)")
 
-if os.path.exists("Kiss Chemistry.png"): st.image("Kiss Chemistry.png", width='stretch')
-user_input = st.text_area("Message", height=120, key="chem", placeholder="YOUR MESSAGE")
+if os.path.exists("Kiss Chemistry.png"): st.image("Kiss Chemistry.png", width=600)
+user_input = st.text_area("M", height=120, key="chem", placeholder="YOUR MESSAGE")
 
-# The space where the result and share button appear
-res_spot = st.container()
-
-# Action Buttons
-kiss = st.button("KISS")
-tell = st.button("TELL")
-
+# Logic
 if kw and user_input:
     a, b = get_params(kw)
-    if kiss:
+    if st.button("KISS"):
         encoded = [to_emoji((a * ord(c) + b) % U_MOD) for c in user_input]
-        st.session_state.result_output = "  ".join(encoded)
-    if tell:
+        st.session_state.out = "  ".join(encoded)
+    
+    if st.button("TELL"):
         try:
             a_inv = pow(a, -1, U_MOD)
             parts = [p.strip() for p in user_input.split("  ") if p.strip()]
-            st.session_state.result_output = "".join(chr((a_inv * (from_emoji(p) - b)) % U_MOD) for p in parts)
+            st.session_state.out = "".join(chr((a_inv * (from_emoji(p) - b)) % U_MOD) for p in parts)
         except:
             st.error("Error!")
 
-# Memory-based Result Display
-if st.session_state.result_output:
-    with res_spot:
-        st.markdown(f'<div class="result-box">{st.session_state.result_output}</div>', unsafe_allow_html=True)
-        if st.button("SHARE ✨"):
-            trigger_share(st.session_state.result_output)
+# Result & Share
+if st.session_state.out:
+    st.markdown(f'<div class="result-box">{st.session_state.out}</div>', unsafe_allow_html=True)
+    # This acts as the "Share" button - it won't disappear when clicked
+    st.download_button("SHARE ✨", data=st.session_state.out, file_name="chemistry.txt")
 
 if st.button("DESTROY CHEMISTRY"):
-    st.session_state.result_output = ""
-    for k in ["lips", "chem", "hint"]: st.session_state[k] = ""
+    st.session_state.out = ""
     st.rerun()
 
-if os.path.exists("LPB.png"): st.image("LPB.png", width='stretch')
+if os.path.exists("LPB.png"): st.image("LPB.png", width=600)
+
