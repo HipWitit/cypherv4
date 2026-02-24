@@ -17,72 +17,75 @@ MOD = 127
 
 st.markdown(f"""
     <style>
+    /* Background and global styles */
     .stApp {{ background-color: #DBDCFF !important; }}
     div[data-testid="stWidgetLabel"], label {{ display: none !important; }}
 
-    /* TEXT BOX & INPUT FIXED COLORS */
+    /* TEXT BOX & INPUT - DARK PURPLE TEXT */
     .stTextInput > div > div > input, 
     .stTextArea > div > div > textarea {{
         background-color: #FEE2E9 !important;
-        color: #B4A7D6 !important; /* Explicit font color */
+        color: #7E60BF !important; /* Darker purple for readability */
         border: 2px solid #B4A7D6 !important;
         font-family: "Courier New", monospace !important;
         font-size: 18px !important;
         font-weight: bold !important;
     }}
     
-    /* Ensuring placeholder text is also visible */
+    /* Input placeholder styling */
     input::placeholder, textarea::placeholder {{
         color: #B4A7D6 !important;
-        opacity: 0.7;
+        opacity: 0.8;
     }}
 
-    /* ACTION BUTTONS (KISS, TELL) - FORCING RECTANGLE SHAPE */
+    /* ACTION BUTTONS (KISS, TELL) - RECTANGLE FIX */
     div.stButton > button {{
         width: 100% !important;
-        min-height: 110px !important; /* Increased height to stop squishing */
-        background-color: #B4A7D6 !important; 
-        color: #FFD4E5 !important;
-        border-radius: 20px !important;
+        min-height: 90px !important; /* Forces rectangle height */
+        min-width: 250px !important; /* Forces rectangle width */
+        background-color: #7E60BF !important; /* Deeper Purple */
+        color: #FFE1EB !important; /* Bright Pink Text */
+        border-radius: 15px !important;
         border: none !important;
-        box-shadow: 0px 6px 0px #9d8dbd !important;
-        margin-top: 15px !important;
+        box-shadow: 0px 5px 0px #5E448F !important; /* 3D effect shadow */
+        margin-top: 10px !important;
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
     }}
 
     div.stButton > button p {{
-        font-size: 38px !important; 
-        font-weight: 900 !important;
-        text-transform: uppercase !important;
+        font-size: 32px !important; 
+        font-weight: 800 !important;
+        letter-spacing: 2px;
         margin: 0 !important;
     }}
 
-    /* DESTROY BUTTON - BOTTOM */
+    /* DESTROY BUTTON - DIFFERENT STYLE */
     div.stButton:last-of-type > button {{
-        min-height: 80px !important;
-        background-color: #D1C4E9 !important;
-        box-shadow: 0px 4px 0px #b3a5cc !important;
+        min-height: 60px !important;
+        background-color: #B4A7D6 !important;
+        box-shadow: 0px 4px 0px #8E7DB3 !important;
+        margin-top: 30px !important;
     }}
     
     div.stButton:last-of-type > button p {{
-        font-size: 24px !important;
+        font-size: 20px !important;
     }}
 
     /* RESULT BOX */
     .result-box {{
         background-color: #FEE2E9; 
-        color: #B4A7D6;
+        color: #7E60BF;
         padding: 20px;
         border-radius: 15px;
-        border: 3px solid #B4A7D6;
+        border: 3px solid #7E60BF;
         margin-top: 20px;
         font-weight: bold;
         font-family: monospace;
         text-align: center;
         word-break: break-all;
-        font-size: 22px;
+        font-size: 20px;
     }}
     </style>
     """, unsafe_allow_html=True)
@@ -134,81 +137,4 @@ else:
     st.write("🧪 **CHEMISTRY LEVEL:** 0%")
     st.progress(0.0)
 
-hint_text = st.text_input("Hint", key="hint", placeholder="KEY HINT (Optional)")
-
-if os.path.exists("Kiss Chemistry.png"): st.image("Kiss Chemistry.png")
-user_input = st.text_area("Message", height=120, key="chem", placeholder="YOUR MESSAGE")
-
-output_placeholder = st.empty()
-kiss_btn = st.button("KISS")
-tell_btn = st.button("TELL")
-
-# --- 4. PROCESSING ---
-if kw and (kiss_btn or tell_btn):
-    a_m, b_m, c_m, d_m = get_matrix_elements(kw)
-    det = (a_m * d_m - b_m * c_m) % MOD
-    det_inv = modInverse(det)
-    sbox, inv_sbox = get_fernet_sbox(kw)
-    
-    if det_inv:
-        res = ""
-        if kiss_btn:
-            points = []
-            for char in user_input:
-                x_r, y_r = get_char_coord(char)
-                x, y = sbox[x_r], sbox[y_r]
-                nx, ny = (a_m*x + b_m*y) % MOD, (c_m*x + d_m*y) % MOD
-                points.append((nx, ny))
-            
-            if points:
-                def e_m(v): return "".join(EMOJI_MAP.get(d, d) for d in apply_sweet_parity(str(v)))
-                header = f"{e_m(points[0][0])[::-1]},{e_m(points[0][1])[::-1]}"
-                m_list = []
-                for i in range(len(points)-1):
-                    dx, dy = e_m(points[i+1][0]-points[i][0]), e_m(points[i+1][1]-points[i][1])
-                    m_list.append(f"({dx[::-1]},{dy[::-1]})" if (i+1)%2==0 else f"({dx},{dy})")
-                res = f"{header} | MOVES: {' '.join(m_list)}"
-
-        if tell_btn:
-            try:
-                clean_in = user_input.split("Hint:")[0].strip()
-                h_p, m_p = clean_in.split("|")
-                rev_map = {v: k for k, v in EMOJI_MAP.items()}
-                def e_to_int(s):
-                    s = "".join(rev_map.get(ch, ch) for ch in s)
-                    return int(s.replace('🍭', '-').replace('🍬', '-'))
-                
-                parts = h_p.strip().split(",")
-                cx, cy = e_to_int(parts[0][::-1]), e_to_int(parts[1][::-1])
-                
-                inv_a, inv_b = (d_m * det_inv) % MOD, (-b_m * det_inv) % MOD
-                inv_c, inv_d = (-c_m * det_inv) % MOD, (a_m * det_inv) % MOD
-                def resolve(x, y): return chr(inv_sbox[(inv_a*x + inv_b*y)%MOD])
-                
-                decoded = [resolve(cx, cy)]
-                for i, m in enumerate(re.findall(r"\(([^)]+)\)", m_p)):
-                    dx_e, dy_e = m.split(",")
-                    dx, dy = (e_to_int(dx_e[::-1]), e_to_int(dy_e[::-1])) if (i+1)%2==0 else (e_to_int(dx_e), e_to_int(dy_e))
-                    cx, cy = cx + dx, cy + dy
-                    decoded.append(resolve(cx, cy))
-                res = "".join(decoded)
-            except: res = "Chemistry Error!"
-
-        with output_placeholder.container():
-            st.markdown(f'<div class="result-box">{res}</div>', unsafe_allow_html=True)
-            components.html(f"""
-                <button onclick="navigator.share({{title:'Secret',text:`{res}\\n\\nHint: {hint_text}`}})" 
-                style="background-color:#FFD4E5; color:#B4A7D6; font-weight:bold; border-radius:20px; 
-                min-height:100px; width:100%; cursor:pointer; font-size: 32px; border:none; 
-                text-transform:uppercase; box-shadow: 0px 4px 12px rgba(0,0,0,0.15); font-family:sans-serif;">
-                SHARE ✨</button>
-            """, height=130)
-
-# --- 5. DESTROY ---
-st.button("DESTROY CHEMISTRY", on_click=lambda: [st.session_state.update({k: ""}) for k in ["lips", "chem", "hint"]])
-
-if os.path.exists("LPB.png"):
-    st.markdown('<div style="text-align:center; margin-top:40px;">', unsafe_allow_html=True)
-    st.image("LPB.png", width=250)
-    st.markdown('<div style="color:#B4A7D6; font-family:monospace; font-weight:bold; font-size:22px; margin-top:10px;">CREATED BY</div></div>', unsafe_allow_html=True)
-
+hint_text = st
