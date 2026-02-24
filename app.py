@@ -17,19 +17,20 @@ MOD = 127
 
 st.markdown(f"""
     <style>
-    /* Global alignment */
+    /* 1. Force everything into a centered column */
     .stApp {{ background-color: #DBDCFF !important; }}
     
-    /* Center all widget containers */
-    [data-testid="stVerticalBlock"] > div {{
-        width: 100% !important;
+    [data-testid="stVerticalBlock"] {{
         display: flex !important;
-        justify-content: center !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        width: 100% !important;
     }}
 
+    /* 2. Hide labels */
     div[data-testid="stWidgetLabel"], label {{ display: none !important; }}
 
-    /* TEXT BOXES - DARK PURPLE TEXT */
+    /* 3. Text Inputs - Centered & Dark Purple Text */
     .stTextInput > div > div > input, 
     .stTextArea > div > div > textarea {{
         background-color: #FEE2E9 !important;
@@ -39,55 +40,63 @@ st.markdown(f"""
         font-size: 18px !important;
         font-weight: bold !important;
         text-align: center !important;
+        border-radius: 15px !important;
     }}
 
-    /* ACTION BUTTONS - FORCING RECTANGLES */
-    div.stButton > button {{
+    /* 4. The "No-Squish" Button Rule */
+    div.stButton {{
         width: 100% !important;
-        height: 100px !important; /* Fixed height, NO squishing */
-        min-height: 100px !important;
-        background-color: #7E60BF !important; /* Solid Deep Purple */
-        color: #FFE1EB !important; /* Bright Pink Text */
+        display: flex !important;
+        justify-content: center !important;
+    }}
+
+    div.stButton > button {{
+        width: 90% !important; /* Full width on mobile minus padding */
+        min-height: 90px !important; 
+        background-color: #7E60BF !important; /* Deep Purple */
+        color: #FFE1EB !important; /* Soft Pink Text */
         border-radius: 20px !important;
         border: none !important;
         box-shadow: 0px 6px 0px #5E448F !important;
-        display: block !important;
-        margin: 10px 0 !important;
+        margin: 10px auto !important;
+        transition: none !important;
     }}
 
     div.stButton > button p {{
-        font-size: 36px !important; 
+        font-size: 32px !important; 
         font-weight: 900 !important;
         text-transform: uppercase !important;
     }}
 
-    /* DESTROY BUTTON - LIGHTER PURPLE BUT FULL WIDTH */
-    div[data-testid="stVerticalBlock"] > div:last-child .stButton > button {{
+    /* Specific Style for Destroy to keep it distinct but centered */
+    div[data-testid="stVerticalBlock"] > div:last-of-type .stButton > button {{
         background-color: #B4A7D6 !important;
-        height: 70px !important;
         min-height: 70px !important;
         box-shadow: 0px 4px 0px #8E7DB3 !important;
     }}
-    div[data-testid="stVerticalBlock"] > div:last-child .stButton > button p {{
-        font-size: 24px !important;
+    
+    div[data-testid="stVerticalBlock"] > div:last-of-type .stButton > button p {{
+        font-size: 22px !important;
     }}
 
-    /* RESULT BOX */
+    /* Result Display Box */
     .result-box {{
         background-color: #FEE2E9; 
         color: #7E60BF;
         padding: 20px;
         border-radius: 20px;
         border: 3px solid #7E60BF;
+        width: 90%;
+        margin: 15px auto;
         text-align: center;
         word-break: break-all;
-        font-size: 20px;
+        font-size: 18px;
         font-weight: bold;
     }}
     </style>
     """, unsafe_allow_html=True)
 
-# --- 2. ENGINE ---
+# --- 2. CRYPTO ENGINE ---
 EMOJI_MAP = {'1': '🦄', '2': '🍼', '3': '🩷', '4': '🧸', '5': '🎀', '6': '🍓', '7': '🌈', '8': '🌸', '9': '💕', '0': '🫐'}
 
 def get_char_coord(char):
@@ -124,20 +133,16 @@ if kw:
     strength = min((len(kw) / 12.0) + (0.1 if any(c.isdigit() for c in kw) else 0), 1.0)
     st.write(f"🧪 **CHEMISTRY LEVEL:** {int(strength*100)}%")
     st.progress(strength)
-else:
-    st.write("🧪 **CHEMISTRY LEVEL:** 0%")
-    st.progress(0.0)
 
 hint_text = st.text_input("Hint", key="hint", placeholder="KEY HINT (Optional)")
 
 if os.path.exists("Kiss Chemistry.png"): st.image("Kiss Chemistry.png")
 user_input = st.text_area("Message", height=100, key="chem", placeholder="YOUR MESSAGE")
 
-output_placeholder = st.empty()
 kiss_btn = st.button("KISS")
 tell_btn = st.button("TELL")
 
-# --- 4. PROCESSING ---
+# --- 4. ENGINE PROCESSING ---
 if kw and (kiss_btn or tell_btn):
     a_m, b_m, c_m, d_m = get_matrix_elements(kw)
     det = (a_m * d_m - b_m * c_m) % MOD
@@ -183,21 +188,21 @@ if kw and (kiss_btn or tell_btn):
                 res = "".join(decoded)
             except: res = "Chemistry Error!"
 
-        with output_placeholder.container():
-            st.markdown(f'<div class="result-box">{res}</div>', unsafe_allow_html=True)
-            components.html(f"""
-                <button onclick="navigator.share({{title:'Secret',text:`{res}\\n\\nHint: {hint_text}`}})" 
-                style="background-color:#FEE2E9; color:#7E60BF; font-weight:bold; border-radius:20px; 
-                height:100px; width:100%; cursor:pointer; font-size: 32px; border:3px solid #7E60BF; 
-                text-transform:uppercase; font-family:sans-serif;">
-                SHARE ✨</button>
-            """, height=120)
+        st.markdown(f'<div class="result-box">{res}</div>', unsafe_allow_html=True)
+        components.html(f"""
+            <button onclick="navigator.share({{title:'Secret',text:`{res}\\n\\nHint: {hint_text}`}})" 
+            style="background-color:#FEE2E9; color:#7E60BF; font-weight:bold; border-radius:20px; 
+            height:90px; width:100%; cursor:pointer; font-size: 28px; border:3px solid #7E60BF; 
+            text-transform:uppercase; font-family:sans-serif;">
+            SHARE ✨</button>
+        """, height=110)
 
-# --- 5. DESTROY ---
+# --- 5. CLEAN UP ---
 if st.button("DESTROY CHEMISTRY"):
+    st.write("Refreshing...") # Small visual cue to prevent error
     st.session_state.clear()
     st.rerun()
 
 if os.path.exists("LPB.png"):
-    st.image("LPB.png", width=250)
-    st.markdown('<div style="color:#7E60BF; font-family:monospace; font-weight:bold; font-size:22px; text-align:center;">CREATED BY</div>', unsafe_allow_html=True)
+    st.image("LPB.png", width=300)
+    st.markdown('<p style="color:#7E60BF; font-family:monospace; font-weight:bold; font-size:22px; text-align:center;">CREATED BY</p>', unsafe_allow_html=True)
