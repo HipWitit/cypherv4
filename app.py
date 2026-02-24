@@ -14,35 +14,32 @@ U_MOD = 1114112
 EMOJI_MAP = {'0':'🦄','1':'🍼','2':'🩷','3':'🧸','4':'🎀','5':'🍓','6':'🌈','7':'🌸','8':'💕','9':'🫐'}
 REV_MAP = {v: k for k, v in EMOJI_MAP.items()}
 
+# Initialize Session State for Memory
+if "result_output" not in st.session_state:
+    st.session_state.result_output = ""
+
 st.markdown(f"""
     <style>
     .stApp {{ background-color: #DBDCFF !important; }}
     div[data-testid="stWidgetLabel"], label {{ display: none !important; }}
     .block-container {{ max-width: 100% !important; padding: 1rem !important; }}
 
-    /* 1. Text Inputs - Fixed Color & Font */
+    /* Inputs */
     .stTextInput > div > div > input, 
     .stTextArea > div > div > textarea {{
         background-color: #FEE2E9 !important;
         color: #B4A7D6 !important; 
         border: 3px solid #B4A7D6 !important;
         font-family: "Courier New", monospace !important;
-        font-size: 20px !important; 
-        font-weight: 900 !important;
+        font-size: 20px !important; font-weight: 900 !important;
         border-radius: 15px !important;
         -webkit-text-fill-color: #B4A7D6 !important;
     }}
 
-    /* 2. BUTTON PROPORTIONS FIX */
-    /* This ensures every button container takes up the full width */
-    div[data-testid="stVerticalBlock"] > div {{
-        width: 100% !important;
-    }}
-
-    /* The actual button styling */
+    /* BUTTONS: Consistent Proportions */
     div.stButton > button {{
         width: 100% !important;
-        height: 90px !important; /* Force a uniform height for all buttons */
+        height: 85px !important;
         background-color: #B4A7D6 !important; 
         color: #FFD4E5 !important;
         border-radius: 20px !important;
@@ -54,32 +51,24 @@ st.markdown(f"""
         margin: 10px 0px !important;
     }}
 
-    /* Ensuring text doesn't cause the button to expand/contract */
     div.stButton > button p {{
-        font-size: 32px !important; 
+        font-size: 30px !important; 
         font-weight: 900 !important;
         text-transform: uppercase !important;
         font-family: "Arial Black", sans-serif !important;
         line-height: 1 !important;
-        margin: 0 !important;
-        white-space: nowrap !important; /* Keep text on one line */
     }}
 
-    /* SHARE BUTTON: Pink Background, Purple Text */
-    div.stButton > button[key="share_btn"] {{
+    /* SHARE BUTTON: Pink Styling */
+    div.stButton > button[key="share_btn_trigger"] {{
         background-color: #FFD4E5 !important;
         box-shadow: 0px 6px 0px #e0b8c8 !important;
     }}
-    div.stButton > button[key="share_btn"] p {{
+    div.stButton > button[key="share_btn_trigger"] p {{
         color: #B4A7D6 !important;
     }}
 
-    /* Scale down font for long button text to keep proportions identical */
-    div.stButton:last-of-type > button p {{
-        font-size: 22px !important;
-    }}
-
-    /* 3. Result Box */
+    /* Result Box */
     .result-box {{
         background-color: #FEE2E9; 
         color: #B4A7D6 !important;
@@ -112,52 +101,50 @@ def get_params(kw):
     return a, rng.randint(1000, 900000)
 
 # --- 3. UI LAYOUT ---
-# Updated width logic to match your logs
-def show_img(name):
-    if os.path.exists(name): st.image(name, width=600) # 'stretch' is the new standard but width works best for stability
-
-show_img("CYPHER.png")
-show_img("Lock Lips.png")
+if os.path.exists("CYPHER.png"): st.image("CYPHER.png", width='stretch')
+if os.path.exists("Lock Lips.png"): st.image("Lock Lips.png", width='stretch')
 
 kw = st.text_input("Key", type="password", key="lips", placeholder="SECRET KEY").strip()
 st.text_input("Hint", key="hint", placeholder="KEY HINT (Optional)")
 
-show_img("Kiss Chemistry.png")
+if os.path.exists("Kiss Chemistry.png"): st.image("Kiss Chemistry.png", width='stretch')
 user_input = st.text_area("Message", height=120, key="chem", placeholder="YOUR MESSAGE")
 
-# Placeholder for Result area
-result_spot = st.container()
+# --- RESULT LOGIC ---
+result_container = st.container()
 
-# Action Buttons
-kiss_btn = st.button("KISS")
-tell_btn = st.button("TELL")
+col1, col2 = st.columns(2)
+with col1: kiss_btn = st.button("KISS")
+with col2: tell_btn = st.button("TELL")
 
 if kw and user_input:
     a, b = get_params(kw)
-    output = ""
-    
     if kiss_btn:
         encoded = [to_emoji((a * ord(c) + b) % U_MOD) for c in user_input]
-        output = "  ".join(encoded)
-    
+        st.session_state.result_output = "  ".join(encoded)
     if tell_btn:
         try:
             a_inv = pow(a, -1, U_MOD)
             parts = [p.strip() for p in user_input.split("  ") if p.strip()]
-            output = "".join(chr((a_inv * (from_emoji(p) - b)) % U_MOD) for p in parts)
+            st.session_state.result_output = "".join(chr((a_inv * (from_emoji(p) - b)) % U_MOD) for p in parts)
         except:
-            st.error("Error!")
+            st.error("Chemistry Error!")
 
-    if output:
-        with result_spot:
-            st.markdown(f'<div class="result-box">{output}</div>', unsafe_allow_html=True)
-            st.button("SHARE ✨", key="share_btn")
+# Display Persistent Result
+if st.session_state.result_output:
+    with result_container:
+        st.markdown(f'<div class="result-box">{st.session_state.result_output}</div>', unsafe_allow_html=True)
+        if st.button("SHARE ✨", key="share_btn_trigger"):
+            # This is the "link" logic - it copies and notifies
+            st.toast("Chemistry Copied! 🌸")
+            # For a real link redirect, you could use:
+            # st.link_button("OPEN LINK", "https://your-link.com")
 
-destroy_btn = st.button("DESTROY CHEMISTRY")
-
-if destroy_btn:
+# Destroy
+if st.button("DESTROY CHEMISTRY"):
+    st.session_state.result_output = ""
     for key in ["lips", "chem", "hint"]:
         if key in st.session_state: st.session_state[key] = ""
     st.rerun()
 
-show_img("LPB.png")
+if os.path.exists("LPB.png"): st.image("LPB.png", width='stretch')
