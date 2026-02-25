@@ -1,6 +1,6 @@
 {
-  "name": "Cypher Lite",
-  "short_name": "Cypher Lite",
+  "name": "Cypher V4 Lite",
+  "short_name": "CypherV4Lite",
   "start_url": "./",
   "display": "standalone",
   "background_color": "#DBDCFF",
