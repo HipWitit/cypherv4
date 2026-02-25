@@ -1,4 +1,9 @@
 import streamlit as st
+
+# --- 1. CONFIG & STYLING ---
+# Updated page config as requested
+st.set_page_config(page_title="Cypher Lite", layout="centered")
+
 import re
 import os
 import secrets
@@ -9,17 +14,10 @@ from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.backends import default_backend
 
-# --- 1. CONFIG & STYLING ---
-# Updated browser tab and app title
-st.set_page_config(page_title="Cypher Lite", layout="centered")
-
 raw_pepper = st.secrets.get("MY_SECRET_PEPPER") or "global_unicode_spice_2026"
 PEPPER = str(raw_pepper).encode()
 U_MOD = 256 
 ROUNDS = 3
-
-# Update app title with emoji
-st.title("Cypher Lite 🧪")
 
 st.markdown(f"""
     <style>
@@ -99,6 +97,7 @@ def get_keys_and_perms(kw):
     rounds_params = []
     for i in range(ROUNDS):
         h = hashlib.sha256(master_key + i.to_bytes(4, 'big')).digest()
+        # Linear Congruential parameters (a must be coprime to 256, so we use odd numbers)
         a = (int.from_bytes(h[:4], 'big') % 120) * 2 + 1 
         b = int.from_bytes(h[4:8], 'big') % 256
         p_list = list(range(256))
@@ -152,7 +151,7 @@ if kw and (kiss_btn or tell_btn):
     if tell_btn:
         try:
             parts = [from_emoji(p) for p in user_input.split(" ") if p.strip()]
-            if len(parts) < 5: raise ValueError("Message too short (missing nonce)")
+            if len(parts) < 5: raise ValueError("Message too short")
             
             nonce_bytes = parts[:4]
             ciphertext_payload = parts[4:]
@@ -174,3 +173,4 @@ if kw and (kiss_btn or tell_btn):
             output_placeholder.markdown(f'<div class="whisper-text">Cypher Whispers: {decoded_msg}</div>', unsafe_allow_html=True)
         except Exception as e:
             st.error("Chemistry Error! Nonce mismatch or corrupted message.")
+
