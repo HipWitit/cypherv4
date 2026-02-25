@@ -5,6 +5,8 @@ st.set_page_config(page_title="Cypher Lite", layout="centered")
 
 st.markdown(f"""
     <link rel="manifest" href="https://raw.githubusercontent.com/HipWitit/cypher-v4/main/manifest.json">
+    <link rel="apple-touch-icon" href="https://raw.githubusercontent.com/HipWitit/cypher-v4/main/Cypher%20ICON%20Lite.png">
+    <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#B4A7D6">
@@ -128,7 +130,6 @@ def clear_everything():
             st.session_state[k] = ""
 
 # --- 3. UI LAYOUT ---
-
 
 if os.path.exists("CYPHER.png"): st.image("CYPHER.png")
 if os.path.exists("Lock Lips.png"): st.image("Lock Lips.png")
