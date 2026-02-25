@@ -10,12 +10,16 @@ from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.backends import default_backend
 
 # --- 1. CONFIG & STYLING ---
-st.set_page_config(page_title="Cyfer Pro: Secret Language", layout="centered")
+# Updated browser tab and app title
+st.set_page_config(page_title="Cypher Lite", layout="centered")
 
 raw_pepper = st.secrets.get("MY_SECRET_PEPPER") or "global_unicode_spice_2026"
 PEPPER = str(raw_pepper).encode()
 U_MOD = 256 
 ROUNDS = 3
+
+# Update app title with emoji
+st.title("Cypher Lite 🧪")
 
 st.markdown(f"""
     <style>
@@ -128,13 +132,8 @@ if kw and (kiss_btn or tell_btn):
     
     if kiss_btn:
         data = user_input.encode('utf-8')
-        # Generate 4-byte nonce (32 bits of randomness)
         nonce_bytes = [secrets.randbelow(256) for _ in range(4)]
-        
-        # Initialize mixing state with a hash of the nonce to spread entropy
         prev = int.from_bytes(hashlib.sha256(bytes(nonce_bytes)).digest()[:1], 'big')
-        
-        # Attach nonce to result list
         res_list = [to_emoji(b) for b in nonce_bytes]
         
         for byte in data:
@@ -155,11 +154,8 @@ if kw and (kiss_btn or tell_btn):
             parts = [from_emoji(p) for p in user_input.split(" ") if p.strip()]
             if len(parts) < 5: raise ValueError("Message too short (missing nonce)")
             
-            # Extract 4-byte nonce
             nonce_bytes = parts[:4]
             ciphertext_payload = parts[4:]
-            
-            # Re-initialize the mixing state using the same nonce hash
             prev = int.from_bytes(hashlib.sha256(bytes(nonce_bytes)).digest()[:1], 'big')
             
             decoded_bytes = []
