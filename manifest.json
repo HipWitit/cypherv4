@@ -1,15 +1,16 @@
 {
   "name": "Cypher V4 Lite",
-  "short_name": "CypherV4Lite",
-  "start_url": "./",
+  "short_name": "CypherLite",
+  "start_url": "https://77e4ywqq.streamlit.app/",
   "display": "standalone",
   "background_color": "#DBDCFF",
   "theme_color": "#B4A7D6",
   "icons": [
     {
-      "src": "appicon.png",
+      "src": "https://raw.githubusercontent.com/HipWitit/cypherv4/main/appicon.png",
       "sizes": "1024x1024",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
     }
   ]
 }
