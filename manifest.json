@@ -9,9 +9,10 @@
   "theme_color": "#B4A7D6",
   "icons": [
     {
-      "src": "https://raw.githubusercontent.com/HipWitit/cypher-v4/main/icon.png",
-      "sizes": "512x512",
-      "type": "image/png"
+      "src": "https://raw.githubusercontent.com/HipWitit/cypher-v4/main/Cypher%20ICON%20Lite.png",
+      "sizes": "1024x1024",
+      "type": "image/png",
+      "purpose": "any maskable"
     }
   ]
 }
