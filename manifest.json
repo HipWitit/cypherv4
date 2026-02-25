@@ -1,0 +1,17 @@
+{
+  "name": "Cypher Lite",
+  "short_name": "Cyfer",
+  "description": "Secret Toy Language Encryption",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#DBDCFF",
+  "theme_color": "#B4A7D6",
+  "icons": [
+    {
+      "src": "https://raw.githubusercontent.com/your-username/your-repo/main/icon.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
+
