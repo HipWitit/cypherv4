@@ -128,7 +128,7 @@ def clear_everything():
             st.session_state[k] = ""
 
 # --- 3. UI LAYOUT ---
-st.title("Cypher Lite 🧪")
+
 
 if os.path.exists("CYPHER.png"): st.image("CYPHER.png")
 if os.path.exists("Lock Lips.png"): st.image("Lock Lips.png")
@@ -147,7 +147,7 @@ st.button("DESTROY CHEMISTRY", on_click=clear_everything)
 st.write("---") # Adds a subtle divider line
 if os.path.exists("LPB.png"): 
     st.image("LPB.png")
-st.markdown('<p class="credit-text">CREATED BY LOVE POTION BOTTLE</p>', unsafe_allow_html=True)
+st.markdown('<p class="credit-text">CREATED BY LILPEACHBAT</p>', unsafe_allow_html=True)
 
 # --- 4. PROCESSING ---
 if kw and (kiss_btn or tell_btn):
