@@ -1,7 +1,7 @@
 {
   "name": "Cypher V4 Lite",
   "short_name": "CypherLite",
-  "start_url": "https://77e4ywqq.streamlit.app/",
+  "start_url": "https://cypherlite.streamlit.app/",
   "display": "standalone",
   "background_color": "#DBDCFF",
   "theme_color": "#B4A7D6",
