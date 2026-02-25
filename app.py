@@ -1,11 +1,8 @@
 import streamlit as st
 
 # --- 1. CONFIG & PWA HEADERS ---
-# This must be the very first Streamlit command
 st.set_page_config(page_title="Cypher Lite", layout="centered")
 
-# Injecting the Manifest and Mobile App tags
-# Ensure your GitHub repo 'cypher-v4' has the manifest.json file
 st.markdown(f"""
     <link rel="manifest" href="https://raw.githubusercontent.com/HipWitit/cypher-v4/main/manifest.json">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -88,6 +85,16 @@ st.markdown(f"""
         font-weight: bold; font-size: 26px; margin-top: 20px;
         border-top: 2px dashed #B4A7D6; padding-top: 15px; text-align: center;
     }}
+
+    /* Styling for the Credit Text at the bottom */
+    .credit-text {{
+        color: #B4A7D6;
+        font-family: "Courier New", monospace !important;
+        font-weight: bold;
+        text-align: center;
+        margin-top: 10px;
+        font-size: 16px;
+    }}
     </style>
     """, unsafe_allow_html=True)
 
@@ -102,7 +109,6 @@ def from_emoji(s):
 def get_keys_and_perms(kw):
     kdf = PBKDF2HMAC(algorithm=hashes.SHA256(), length=64, salt=b"csprng_v3", iterations=100000, backend=default_backend())
     master_key = kdf.derive(kw.encode() + PEPPER)
-    
     rounds_params = []
     for i in range(ROUNDS):
         h = hashlib.sha256(master_key + i.to_bytes(4, 'big')).digest()
@@ -122,6 +128,7 @@ def clear_everything():
             st.session_state[k] = ""
 
 # --- 3. UI LAYOUT ---
+st.title("Cypher Lite 🧪")
 
 if os.path.exists("CYPHER.png"): st.image("CYPHER.png")
 if os.path.exists("Lock Lips.png"): st.image("Lock Lips.png")
@@ -136,16 +143,20 @@ output_placeholder = st.empty()
 kiss_btn, tell_btn = st.button("KISS"), st.button("TELL")
 st.button("DESTROY CHEMISTRY", on_click=clear_everything)
 
+# --- FOOTER SECTION (LPB & CREDIT) ---
+st.write("---") # Adds a subtle divider line
+if os.path.exists("LPB.png"): 
+    st.image("LPB.png")
+st.markdown('<p class="credit-text">CREATED BY LOVE POTION BOTTLE</p>', unsafe_allow_html=True)
+
 # --- 4. PROCESSING ---
 if kw and (kiss_btn or tell_btn):
     params = get_keys_and_perms(kw)
-    
     if kiss_btn:
         data = user_input.encode('utf-8')
         nonce_bytes = [secrets.randbelow(256) for _ in range(4)]
         prev = int.from_bytes(hashlib.sha256(bytes(nonce_bytes)).digest()[:1], 'big')
         res_list = [to_emoji(b) for b in nonce_bytes]
-        
         for byte in data:
             current = byte ^ prev
             for r in range(ROUNDS):
@@ -153,7 +164,6 @@ if kw and (kiss_btn or tell_btn):
                 current = (params[r]['a'] * current + params[r]['b']) % 256
             res_list.append(to_emoji(current))
             prev = current
-        
         res = " ".join(res_list)
         with output_placeholder.container():
             st.markdown(f'<div class="result-box">{res}</div>', unsafe_allow_html=True)
@@ -163,11 +173,9 @@ if kw and (kiss_btn or tell_btn):
         try:
             parts = [from_emoji(p) for p in user_input.split(" ") if p.strip()]
             if len(parts) < 5: raise ValueError("Message too short")
-            
             nonce_bytes = parts[:4]
             ciphertext_payload = parts[4:]
             prev = int.from_bytes(hashlib.sha256(bytes(nonce_bytes)).digest()[:1], 'big')
-            
             decoded_bytes = []
             for current_cipher in ciphertext_payload:
                 temp = current_cipher
@@ -175,12 +183,10 @@ if kw and (kiss_btn or tell_btn):
                     a_inv = pow(params[r]['a'], -1, 256)
                     temp = (a_inv * (temp - params[r]['b'])) % 256
                     temp = params[r]['inv_p'][temp]
-                
                 original_byte = temp ^ prev
                 decoded_bytes.append(original_byte)
                 prev = current_cipher
-            
             decoded_msg = bytes(decoded_bytes).decode('utf-8')
             output_placeholder.markdown(f'<div class="whisper-text">Cypher Whispers: {decoded_msg}</div>', unsafe_allow_html=True)
-        except Exception as e:
+        except Exception:
             st.error("Chemistry Error! Check Key or Hint.")
