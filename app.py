@@ -4,7 +4,7 @@ import streamlit as st
 st.set_page_config(page_title="Cypher Lite", layout="centered")
 
 st.markdown(f"""
-    <link rel="manifest" href="https://raw.githubusercontent.com/HipWitit/cypher-v4/main/manifest.json">
+    <link rel="manifest" href="https://raw.githubusercontent.com/HipWitit/cypher-v4/main/manifest.json?v=2">
     <link rel="icon" href="https://raw.githubusercontent.com/HipWitit/cypher-v4/main/appicon.png">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
