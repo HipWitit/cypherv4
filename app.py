@@ -122,7 +122,6 @@ def clear_everything():
             st.session_state[k] = ""
 
 # --- 3. UI LAYOUT ---
-st.title("Cypher Lite 🧪")
 
 if os.path.exists("CYPHER.png"): st.image("CYPHER.png")
 if os.path.exists("Lock Lips.png"): st.image("Lock Lips.png")
