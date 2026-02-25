@@ -2,16 +2,15 @@
   "name": "Cypher Lite",
   "short_name": "Cypher Lite",
   "description": "Secret Toy Language Encryption",
-  "start_url": "/",
+  "start_url": "https://9jzupqmdrxsd.streamlit.app/",
   "display": "standalone",
   "background_color": "#DBDCFF",
   "theme_color": "#B4A7D6",
   "icons": [
     {
-      "src": "https://raw.githubusercontent.com/your-username/your-repo/main/icon.png",
+      "src": "https://raw.githubusercontent.com/HipWitit/cypher-v4/main/icon.png",
       "sizes": "512x512",
       "type": "image/png"
     }
   ]
 }
-
