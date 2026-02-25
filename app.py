@@ -1,8 +1,17 @@
 import streamlit as st
 
-# --- 1. CONFIG & STYLING ---
-# Updated page config as requested
+# --- 1. CONFIG & PWA HEADERS ---
+# This must be the very first Streamlit command
 st.set_page_config(page_title="Cypher Lite", layout="centered")
+
+# Injecting the Manifest and Mobile App tags
+# Ensure your GitHub repo 'cypher-v4' has the manifest.json file
+st.markdown(f"""
+    <link rel="manifest" href="https://raw.githubusercontent.com/HipWitit/cypher-v4/main/manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#B4A7D6">
+""", unsafe_allow_html=True)
 
 import re
 import os
@@ -14,6 +23,7 @@ from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.backends import default_backend
 
+# --- 2. CRYPTO-STRENGTH ENGINE ---
 raw_pepper = st.secrets.get("MY_SECRET_PEPPER") or "global_unicode_spice_2026"
 PEPPER = str(raw_pepper).encode()
 U_MOD = 256 
@@ -81,7 +91,6 @@ st.markdown(f"""
     </style>
     """, unsafe_allow_html=True)
 
-# --- 2. CRYPTO-STRENGTH ENGINE ---
 EMOJI_MAP = {'0':'🦄','1':'🍼','2':'🩷','3':'🧸','4':'🎀','5':'🍓','6':'🌈','7':'🌸','8':'💕','9':'🫐'}
 REV_MAP = {v: k for k, v in EMOJI_MAP.items()}
 
@@ -97,7 +106,6 @@ def get_keys_and_perms(kw):
     rounds_params = []
     for i in range(ROUNDS):
         h = hashlib.sha256(master_key + i.to_bytes(4, 'big')).digest()
-        # Linear Congruential parameters (a must be coprime to 256, so we use odd numbers)
         a = (int.from_bytes(h[:4], 'big') % 120) * 2 + 1 
         b = int.from_bytes(h[4:8], 'big') % 256
         p_list = list(range(256))
@@ -109,9 +117,13 @@ def get_keys_and_perms(kw):
     return rounds_params
 
 def clear_everything():
-    for k in ["lips", "chem", "hint"]: st.session_state[k] = ""
+    for k in ["lips", "chem", "hint"]:
+        if k in st.session_state:
+            st.session_state[k] = ""
 
 # --- 3. UI LAYOUT ---
+st.title("Cypher Lite 🧪")
+
 if os.path.exists("CYPHER.png"): st.image("CYPHER.png")
 if os.path.exists("Lock Lips.png"): st.image("Lock Lips.png")
 
@@ -172,5 +184,4 @@ if kw and (kiss_btn or tell_btn):
             decoded_msg = bytes(decoded_bytes).decode('utf-8')
             output_placeholder.markdown(f'<div class="whisper-text">Cypher Whispers: {decoded_msg}</div>', unsafe_allow_html=True)
         except Exception as e:
-            st.error("Chemistry Error! Nonce mismatch or corrupted message.")
-
+            st.error("Chemistry Error! Check Key or Hint.")
