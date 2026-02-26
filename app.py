@@ -103,10 +103,16 @@ EMOJI_MAP = {'0':'🦄','1':'🍼','2':'🩷','3':'🧸','4':'🎀','5':'🍓','
 REV_MAP = {v: k for k, v in EMOJI_MAP.items()}
 
 def to_emoji(val): return "".join(EMOJI_MAP.get(d, d) for d in f"{val:03}")
+
 def from_emoji(s):
-    # Only keep characters that are in our emoji map to avoid "ghost" characters
-    res = "".join(REV_MAP[char] for char in s if char in REV_MAP)
-    return int(res) if res else None
+    digits = []
+    for ch in s:
+        if ch not in REV_MAP:
+            return None
+        digits.append(REV_MAP[ch])
+    if len(digits) != 3:
+        return None
+    return int("".join(digits))
 
 def get_keys_and_perms(kw):
     kdf = PBKDF2HMAC(algorithm=hashes.SHA256(), length=64, salt=b"csprng_v3", iterations=100000, backend=default_backend())
@@ -173,13 +179,13 @@ if kw and (kiss_btn or tell_btn):
 
     if tell_btn:
         try:
-            # FIX: Replace newlines with spaces and filter out any None/Empty values
-            raw_parts = user_input.replace('\n', ' ').split(" ")
+            # Updated emoji processing logic
             parts = []
-            for p in raw_parts:
-                val = from_emoji(p.strip())
-                if val is not None:
-                    parts.append(val)
+            for chunk in user_input.split():
+                val = from_emoji(chunk)
+                if val is None:
+                    raise ValueError("Invalid emoji block")
+                parts.append(val)
 
             if len(parts) < 5: 
                 raise ValueError("Message too short")
