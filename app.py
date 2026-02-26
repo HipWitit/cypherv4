@@ -1,13 +1,12 @@
 import streamlit as st
-import re
 import os
 import secrets
 import hashlib
-import math
 import streamlit.components.v1 as components
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.backends import default_backend
+import traceback
 
 # --- 1. CONFIG & PWA HEADERS ---
 st.set_page_config(page_title="Cypher Lite", layout="centered")
@@ -22,20 +21,18 @@ st.markdown(f"""
 """, unsafe_allow_html=True)
 
 # --- 2. CRYPTO-STRENGTH ENGINE ---
+# DEFENSIVE: Ensure PEPPER is consistent. 
+# Check your Streamlit Secrets tab in the dashboard!
 raw_pepper = st.secrets.get("MY_SECRET_PEPPER") or "global_unicode_spice_2026"
 PEPPER = str(raw_pepper).encode()
-U_MOD = 256 
 ROUNDS = 3
 
 st.markdown(f"""
     <style>
     .stApp {{ background-color: #DBDCFF !important; }}
-    .main .block-container {{ padding-bottom: 150px !important; }}
     div[data-testid="stWidgetLabel"], label {{ display: none !important; }}
-
     .stTextInput > div > div > input, 
-    .stTextArea > div > div > textarea,
-    input::placeholder, textarea::placeholder {{
+    .stTextArea > div > div > textarea {{
         background-color: #FEE2E9 !important;
         color: #B4A7D6 !important; 
         border: 2px solid #B4A7D6 !important;
@@ -43,58 +40,27 @@ st.markdown(f"""
         font-size: 18px !important;
         font-weight: bold !important;
     }}
-
-    .stProgress > div > div > div > div {{ background-color: #B4A7D6 !important; }}
-
-    [data-testid="column"], [data-testid="stVerticalBlock"] > div {{ width: 100% !important; flex: 1 1 100% !important; }}
-    .stButton, .stButton > button {{ width: 100% !important; display: block !important; }}
-
-    div.stButton > button p {{
-        font-size: 38px !important; 
-        font-weight: 800 !important;
-        line-height: 1.1 !important;
-        margin: 0 !important;
-        text-align: center !important;
-    }}
-
-    div.stButton > button {{
+    .stButton > button {{
         background-color: #B4A7D6 !important; 
         color: #FFD4E5 !important;
         border-radius: 15px !important;
         min-height: 100px !important; 
-        border: none !important;
-        text-transform: uppercase;
-        box-shadow: 0px 4px 12px rgba(0,0,0,0.15);
-        margin-top: 15px !important;
+        width: 100% !important;
+        font-size: 38px !important;
+        font-weight: 800 !important;
     }}
-
-    div[data-testid="stVerticalBlock"] > div:last-child .stButton > button p {{ font-size: 24px !important; }}
-    div[data-testid="stVerticalBlock"] > div:last-child .stButton > button {{
-        min-height: 70px !important;
-        background-color: #D1C4E9 !important;
-    }}
-
     .result-box {{
         background-color: #FEE2E9; color: #B4A7D6; padding: 15px;
         border-radius: 10px; font-family: "Courier New", monospace !important;
         border: 2px solid #B4A7D6; word-wrap: break-word;
         margin-top: 15px; font-weight: bold; text-align: center;
     }}
-
     .whisper-text {{
         color: #B4A7D6; font-family: "Courier New", monospace !important;
         font-weight: bold; font-size: 26px; margin-top: 20px;
         border-top: 2px dashed #B4A7D6; padding-top: 15px; text-align: center;
     }}
-
-    .credit-text {{
-        color: #B4A7D6;
-        font-family: "Courier New", monospace !important;
-        font-weight: bold;
-        text-align: center;
-        margin-top: 10px;
-        font-size: 16px;
-    }}
+    .credit-text {{ color: #B4A7D6; font-family: "Courier New", monospace !important; text-align: center; font-size: 16px; }}
     </style>
     """, unsafe_allow_html=True)
 
@@ -104,13 +70,8 @@ REV_MAP = {v: k for k, v in EMOJI_MAP.items()}
 def to_emoji(val): return "".join(EMOJI_MAP.get(d, d) for d in f"{val:03}")
 
 def from_emoji(s):
-    digits = []
-    for ch in s:
-        if ch not in REV_MAP:
-            return None
-        digits.append(REV_MAP[ch])
-    if len(digits) != 3:
-        return None
+    digits = [REV_MAP[ch] for ch in s if ch in REV_MAP]
+    if len(digits) != 3: return None
     return int("".join(digits))
 
 def get_keys_and_perms(kw):
@@ -119,41 +80,35 @@ def get_keys_and_perms(kw):
     rounds_params = []
     for i in range(ROUNDS):
         h = hashlib.sha256(master_key + i.to_bytes(4, 'big')).digest()
-        # 'a' is always odd, ensuring gcd(a, 256) == 1
-        a = (int.from_bytes(h[:4], 'big') % 120) * 2 + 1 
+        # FIX 1: Defensive modular reduction for 'a'
+        a = ((int.from_bytes(h[:4], 'big') % 120) * 2 + 1) % 256
         b = int.from_bytes(h[4:8], 'big') % 256
         p_list = list(range(256))
-        seed = int.from_bytes(h[8:16], 'big')
         import random
-        r = random.Random(seed)
-        r.shuffle(p_list)
-        rounds_params.append({'a': a, 'b': b, 'p': p_list, 'inv_p': [p_list.index(j) for j in range(256)]})
+        r_gen = random.Random(int.from_bytes(h[8:16], 'big'))
+        r_gen.shuffle(p_list)
+        # FIX 2: O(N) inverse permutation construction
+        inv_p = [0] * 256
+        for idx, val in enumerate(p_list):
+            inv_p[val] = idx
+        rounds_params.append({'a': a, 'b': b, 'p': p_list, 'inv_p': inv_p})
     return rounds_params
 
 def clear_everything():
     for k in ["lips", "chem", "hint"]:
-        if k in st.session_state:
-            st.session_state[k] = ""
+        if k in st.session_state: st.session_state[k] = ""
 
 # --- 3. UI LAYOUT ---
-
 if os.path.exists("CYPHER.png"): st.image("CYPHER.png")
-if os.path.exists("Lock Lips.png"): st.image("Lock Lips.png")
-
 kw = st.text_input("Key", type="password", key="lips", placeholder="SECRET KEY").strip()
 hint_text = st.text_input("Hint", key="hint", placeholder="KEY HINT (Optional)")
-
-if os.path.exists("Kiss Chemistry.png"): st.image("Kiss Chemistry.png")
 user_input = st.text_area("Message", height=120, key="chem", placeholder="YOUR MESSAGE")
 
 output_placeholder = st.empty()
 kiss_btn, tell_btn = st.button("KISS"), st.button("TELL")
 st.button("DESTROY CHEMISTRY", on_click=clear_everything)
 
-# --- FOOTER SECTION ---
 st.write("---") 
-if os.path.exists("LPB.png"): 
-    st.image("LPB.png")
 st.markdown('<p class="credit-text">CREATED BY LILPEACHBAT</p>', unsafe_allow_html=True)
 
 # --- 4. PROCESSING ---
@@ -162,10 +117,8 @@ if kw and (kiss_btn or tell_btn):
     
     if kiss_btn:
         data = user_input.encode('utf-8')
-        # ADDED: Integrity Tag (First 4 bytes of SHA256)
         tag = hashlib.sha256(data).digest()[:4]
         payload = data + tag
-        
         nonce_bytes = [secrets.randbelow(256) for _ in range(4)]
         prev = int.from_bytes(hashlib.sha256(bytes(nonce_bytes)).digest()[:1], 'big')
         res_list = [to_emoji(b) for b in nonce_bytes]
@@ -185,15 +138,14 @@ if kw and (kiss_btn or tell_btn):
 
     if tell_btn:
         try:
+            # Aggressive split to ignore trailing text (Hints, etc)
             parts = []
             for chunk in user_input.split():
                 val = from_emoji(chunk)
-                if val is None:
-                    raise ValueError("Formatting Error: Invalid Emoji Block")
-                parts.append(val)
+                if val is not None: parts.append(val)
+                else: break # Stop if we hit non-emoji text (like "Hint:...")
 
-            if len(parts) < 9: # 4 nonce + 4 tag + at least 1 msg byte
-                raise ValueError("Length Error: Message incomplete")
+            if len(parts) < 9: raise ValueError(f"Incomplete Message (Expected 9+ blocks, got {len(parts)})")
             
             nonce_ints = parts[:4]
             ciphertext_payload = parts[4:]
@@ -210,18 +162,17 @@ if kw and (kiss_btn or tell_btn):
                 decoded_bytes.append(original_byte)
                 prev = current_cipher
             
-            # Split tag from message
             final_data = bytes(decoded_bytes[:-4])
             received_tag = bytes(decoded_bytes[-4:])
             computed_tag = hashlib.sha256(final_data).digest()[:4]
             
             if computed_tag != received_tag:
-                st.error("Integrity Error: Message was tampered with or Key is wrong.")
+                st.error("Integrity Mismatch: Key is wrong or message was corrupted.")
             else:
-                decoded_msg = final_data.decode('utf-8')
-                output_placeholder.markdown(f'<div class="whisper-text">Cypher Whispers: {decoded_msg}</div>', unsafe_allow_html=True)
+                output_placeholder.markdown(f'<div class="whisper-text">Cypher Whispers: {final_data.decode("utf-8")}</div>', unsafe_allow_html=True)
         
-        except UnicodeDecodeError:
-            st.error("Chemistry Error: Key is likely incorrect (Decryption resulted in gibberish).")
         except Exception as e:
-            st.error(f"Error: {str(e)}")
+            # FIX: The "Anti-Mystery" Debugger
+            st.error("Chemistry Unstable!")
+            with st.expander("Show Diagnostic Trace"):
+                st.code(traceback.format_exc())
