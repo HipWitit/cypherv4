@@ -1,257 +1,228 @@
 import streamlit as st
-import random
-import pandas as pd
-import math
-import time
-import datetime
-from streamlit_gsheets import GSheetsConnection
 
-# --- 1. SETTINGS & THEMING ---
-st.set_page_config(page_title="Sorcery Sums", page_icon="🪄")
-
-# Autorefresh for Leaderboard
-try:
-    from streamlit_autorefresh import st_autorefresh
-    st_autorefresh(interval=30000, key="datarefresh")
-except:
-    pass
+# --- 1. CONFIG & PWA HEADERS ---
+st.set_page_config(page_title="Cypher Lite", layout="centered")
 
 st.markdown(f"""
-    <style>
-    /* 1. Main Background */
-    .stApp {{ background-color: #fde4f2; }}
-    
-    /* 2. Sidebar Background */
-    [data-testid="stSidebar"] {{
-        background-color: #ddfffc !important;
-        border-right: 2px solid #c6c7ff;
-    }}
-
-    /* 3. PINK BACKGROUND FOR SUBJECT & GRADE SELECTION */
-    /* This targets both the Selectbox and the Radio Button groups in the sidebar */
-    div[data-testid="stSelectbox"], 
-    div[role="radiogroup"] {{
-        background-color: #ffdef2 !important;
-        padding: 15px;
-        border-radius: 15px;
-        border: 2px solid #eecbff;
-        margin-bottom: 20px;
-    }}
-
-    /* 4. RADIO BUTTONS: PERIWINKLE WHEN SELECTED */
-    /* Outer circle of the radio button */
-    div[role="radiogroup"] div[data-testid="stRadioButtonInternalDefaultCircle"] {{
-        border-color: #7b7dbd !important;
-        background-color: white !important;
-    }}
-    /* The periwinkle fill (#c6c7ff) when selected */
-    div[role="radiogroup"] div[data-selection="true"] div {{
-        background-color: #c6c7ff !important;
-    }}
-
-    /* 5. Hall of Wizards & Sidebar Text Color */
-    [data-testid="stSidebar"] h1, 
-    [data-testid="stSidebar"] h2, 
-    [data-testid="stSidebar"] .stTabs button,
-    [data-testid="stSidebar"] [data-testid="stTable"] td,
-    [data-testid="stSidebar"] [data-testid="stTable"] th,
-    [data-testid="stSidebar"] label p {{
-        color: #eecbff !important;
-    }}
-    
-    /* Main interface styling */
-    .question-container {{
-        background-color: white; 
-        padding: 30px; 
-        border-radius: 20px; 
-        border: 4px solid #c6c7ff; 
-        text-align: center; 
-        margin-bottom: 20px;
-    }}
-    
-    .question-container h1, .question-container h3 {{
-        color: #7b7dbd !important;
-    }}
-
-    /* Input Fields */
-    div[data-testid="stTextArea"] textarea {{
-        background-color: #b4a7d6 !important; 
-        color: #d4ffea !important;           
-        border-radius: 10px;
-        border: 2px solid #7b7dbd;
-    }}
-    
-    div[data-testid="stTextInput"] input {{
-        background-color: #e6fff8 !important;
-        color: #7b7dbd !important;
-        border-radius: 10px;
-    }}
-
-    .stButton>button {{ 
-        background-color: #c6c7ff; 
-        color: white; 
-        border-radius: 50px; 
-        width: 100%; 
-        font-weight: bold;
-    }}
-    </style>
-    """, unsafe_allow_html=True)
-
-# --- 2. THE SACRED STAR EFFECT ---
-def pastel_star_effect():
-    st.markdown("""
-    <style>
-    .star {
-        position: fixed; width: 25px; height: 25px;
-        clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
-        animation: floatUp 2.5s ease-out forwards; z-index: 9999;
-    }
-    @keyframes floatUp {
-        0% { transform: translateY(0) rotate(0deg); opacity: 1; }
-        100% { transform: translateY(-500px) rotate(360deg); opacity: 0; }
-    }
-    </style>
-    <script>
-    const colors = ["#ffd6ff","#caffbf","#fdffb6","#bdb2ff","#a0c4ff"];
-    for (let i = 0; i < 30; i++) {
-        let star = document.createElement("div");
-        star.className = "star";
-        star.style.left = Math.random() * window.innerWidth + "px";
-        star.style.top = window.innerHeight + "px";
-        star.style.background = colors[Math.floor(Math.random() * colors.length)];
-        document.body.appendChild(star);
-        setTimeout(() => star.remove(), 2500);
-    }
-    </script>
-    """, unsafe_allow_html=True)
-
-# --- 3. DATABASE CONNECTION ---
-conn = st.connection("gsheets", type=GSheetsConnection)
-
-# --- 4. LOGIN SCREEN ---
-if "player_name" not in st.session_state:
-    try:
-        st.image("Sorcerer Login.png")
-    except:
-        st.write("✨ **Portal Opening...** ✨")
-    name = st.text_input("Enter your name to begin your journey:")
-    if st.button("Enter Realm"):
-        if name:
-            st.session_state.player_name = name
-            st.rerun()
-    st.stop()
-
-# --- 5. MATH LOGIC BY UNIT & LEVEL ---
-def generate_spell(unit, level):
-    if "Algebra" in unit:
-        difficulty = int(level) - 9
-        x = random.randint(2, 10 * difficulty)
-        a = random.randint(2, 5 * difficulty)
-        b = random.randint(1, 20)
-        c = (a * x) + b
-        return f"Solve for x: {a}x + {b} = {c}", x
-
-    elif "Quadratics" in unit:
-        x = random.randint(1, 10)
-        if level == "10":
-            return f"Solve for x: x² = {x**2}", x
-        else:
-            x2 = random.randint(1, 5)
-            b_val = -(x + x2)
-            c_val = x * x2
-            return f"Find one positive root: x² + ({b_val})x + {c_val} = 0", x
-
-    elif "Functions" in unit:
-        x = random.randint(2, 6)
-        if level == "10":
-            return f"f(x) = 3x + 5. Find f({x})", (3*x + 5)
-        else:
-            return f"f(x) = x² + 2. Find f({x})", (x**2 + 2)
-
-    elif "Geometry" in unit:
-        r = random.randint(2, 10)
-        if level == "10":
-            return f"Circle Radius = {r}. What is the Area? (Use 3.14)", round(3.14 * (r**2), 2)
-        else:
-            area = round(math.pi * (r**2), 2)
-            return f"Circle Area = {area}. What is the radius r?", r
-    
-    return "Scroll not found", 0
-
-# --- 6. SIDEBAR: LESSON SELECTION & LEADERBOARD ---
-st.sidebar.title("📜 Choose Your Scroll")
-unit_choice = st.sidebar.selectbox("Select Subject", ["Algebra", "Quadratics", "Functions", "Geometry"])
-level_choice = st.sidebar.radio("Select Grade Level", ["10", "11", "12"])
-
-# Reset question if unit/level changes
-if ("last_unit" not in st.session_state or 
-    st.session_state.last_unit != unit_choice or 
-    st.session_state.last_level != level_choice):
-    st.session_state.last_unit = unit_choice
-    st.session_state.last_level = level_choice
-    st.session_state.current_q, st.session_state.target_ans = generate_spell(unit_choice, level_choice)
-
-# Hall of Wizards
-st.sidebar.markdown("---")
-st.sidebar.markdown("# 🏆 Hall of Wizards")
-try:
-    scores_df = conn.read(ttl=0)
-    if not scores_df.empty:
-        scores_df['Date'] = pd.to_datetime(scores_df['Date'])
-        now = datetime.datetime.now()
-        tab_w, tab_m, tab_y = st.sidebar.tabs(["Week", "Month", "Year"])
-        with tab_w:
-            w_data = scores_df[scores_df['Date'] >= (now - datetime.timedelta(days=7))]
-            if not w_data.empty: st.table(w_data.groupby("Name")["Score"].sum().sort_values(ascending=False).astype(int))
-        with tab_m:
-            m_data = scores_df[scores_df['Date'].dt.month == now.month]
-            if not m_data.empty: st.table(m_data.groupby("Name")["Score"].sum().sort_values(ascending=False).astype(int))
-        with tab_y:
-            y_data = scores_df[scores_df['Date'].dt.year == now.year]
-            if not y_data.empty: st.table(y_data.groupby("Name")["Score"].sum().sort_values(ascending=False).astype(int))
-except:
-    st.sidebar.write("The scrolls are sleeping.")
-
-# --- 7. MAIN INTERFACE ---
-try:
-    st.image("Sorcery Sums.png")
-except:
-    st.title("Sorcery Sums")
-
-st.markdown(f"""
-    <div class="question-container">
-        <h3>Grade {level_choice} {unit_choice}</h3>
-        <h1>{st.session_state.current_q}</h1>
-    </div>
+    <link rel="manifest" href="https://raw.githubusercontent.com/HipWitit/cypherv4/main/manifest.json?v=1.1">
+    <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/HipWitit/cypherv4/main/appicon.png">
+    <link rel="apple-touch-icon" href="https://raw.githubusercontent.com/HipWitit/cypherv4/main/appicon.png">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#B4A7D6">
 """, unsafe_allow_html=True)
 
-st.text_area("Spellbook Scratchpad:", placeholder="Work out your equations here...", height=100, key="scratchpad")
-user_answer_raw = st.text_input("Your Final Answer:", placeholder="Type number here...")
+import re
+import os
+import secrets
+import hashlib
+import math
+import traceback
+import streamlit.components.v1 as components
+from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.backends import default_backend
 
-if st.button("🪄 Cast Spell!"):
-    try:
-        user_answer = float(user_answer_raw)
-        if math.isclose(user_answer, st.session_state.target_ans, rel_tol=0.1):
-            pastel_star_effect()
-            st.markdown(f"""
-                <div style="background-color: #ffffe3; border: 3px solid #b4a7d6; border-radius: 20px; padding: 20px; text-align: center; margin-top: 15px; margin-bottom: 15px; box-shadow: 0px 4px 10px rgba(0,0,0,0.05);">
-                    <h2 style="color: #7b7dbd !important; margin: 0; font-size: 24px;">Correct! (｡◕‿◕｡)━☆ﾟ.*･｡ﾟ</h2>
-                </div>
-            """, unsafe_allow_html=True)
+# --- 2. CRYPTO-STRENGTH ENGINE ---
+raw_pepper = st.secrets.get("MY_SECRET_PEPPER") or "global_unicode_spice_2026"
+PEPPER = str(raw_pepper).encode()
+U_MOD = 256 
+ROUNDS = 3
+
+st.markdown(f"""
+    <style>
+    .stApp {{ background-color: #DBDCFF !important; }}
+    .main .block-container {{ padding-bottom: 150px !important; }}
+    div[data-testid="stWidgetLabel"], label {{ display: none !important; }}
+
+    .stTextInput > div > div > input, 
+    .stTextArea > div > div > textarea,
+    input::placeholder, textarea::placeholder {{
+        background-color: #FEE2E9 !important;
+        color: #B4A7D6 !important; 
+        border: 2px solid #B4A7D6 !important;
+        font-family: "Courier New", Courier, monospace !important;
+        font-size: 18px !important;
+        font-weight: bold !important;
+    }}
+
+    .stProgress > div > div > div > div {{ background-color: #B4A7D6 !important; }}
+
+    [data-testid="column"], [data-testid="stVerticalBlock"] > div {{ width: 100% !important; flex: 1 1 100% !important; }}
+    .stButton, .stButton > button {{ width: 100% !important; display: block !important; }}
+
+    div.stButton > button p {{
+        font-size: 38px !important; 
+        font-weight: 800 !important;
+        line-height: 1.1 !important;
+        margin: 0 !important;
+        text-align: center !important;
+    }}
+
+    div.stButton > button {{
+        background-color: #B4A7D6 !important; 
+        color: #FFD4E5 !important;
+        border-radius: 15px !important;
+        min-height: 100px !important; 
+        border: none !important;
+        text-transform: uppercase;
+        box-shadow: 0px 4px 12px rgba(0,0,0,0.15);
+        margin-top: 15px !important;
+    }}
+
+    div[data-testid="stVerticalBlock"] > div:last-child .stButton > button p {{ font-size: 24px !important; }}
+    div[data-testid="stVerticalBlock"] > div:last-child .stButton > button {{
+        min-height: 70px !important;
+        background-color: #D1C4E9 !important;
+    }}
+
+    .result-box {{
+        background-color: #FEE2E9; color: #B4A7D6; padding: 15px;
+        border-radius: 10px; font-family: "Courier New", monospace !important;
+        border: 2px solid #B4A7D6; word-wrap: break-word;
+        margin-top: 15px; font-weight: bold; text-align: center;
+    }}
+
+    .whisper-text {{
+        color: #B4A7D6; font-family: "Courier New", monospace !important;
+        font-weight: bold; font-size: 26px; margin-top: 20px;
+        border-top: 2px dashed #B4A7D6; padding-top: 15px; text-align: center;
+    }}
+
+    .credit-text {{
+        color: #B4A7D6;
+        font-family: "Courier New", monospace !important;
+        font-weight: bold;
+        text-align: center;
+        margin-top: 10px;
+        font-size: 16px;
+    }}
+    </style>
+    """, unsafe_allow_html=True)
+
+EMOJI_MAP = {'0':'🦄','1':'🍼','2':'🩷','3':'🧸','4':'🎀','5':'🍓','6':'🌈','7':'🌸','8':'💕','9':'🫐'}
+REV_MAP = {v: k for k, v in EMOJI_MAP.items()}
+
+def to_emoji(val): return "".join(EMOJI_MAP.get(d, d) for d in f"{val:03}")
+
+def from_emoji(s):
+    digits = []
+    for ch in s:
+        if ch not in REV_MAP:
+            return None
+        digits.append(REV_MAP[ch])
+    if len(digits) != 3:
+        return None
+    return int("".join(digits))
+
+def get_keys_and_perms(kw):
+    kdf = PBKDF2HMAC(algorithm=hashes.SHA256(), length=64, salt=b"csprng_v3", iterations=100000, backend=default_backend())
+    master_key = kdf.derive(kw.encode() + PEPPER)
+    rounds_params = []
+    for i in range(ROUNDS):
+        h = hashlib.sha256(master_key + i.to_bytes(4, 'big')).digest()
+        # Defensive modular arithmetic to guarantee invertibility mod 256
+        a = ((int.from_bytes(h[:4], 'big') % 120) * 2 + 1) % 256
+        b = int.from_bytes(h[4:8], 'big') % 256
+        p_list = list(range(256))
+        seed = int.from_bytes(h[8:16], 'big')
+        import random
+        r = random.Random(seed)
+        r.shuffle(p_list)
+        # Optimized O(N) inverse construction
+        inv_p = [0]*256
+        for idx, v in enumerate(p_list):
+            inv_p[v] = idx
+        rounds_params.append({'a': a, 'b': b, 'p': p_list, 'inv_p': inv_p})
+    return rounds_params
+
+def clear_everything():
+    for k in ["lips", "chem", "hint"]:
+        if k in st.session_state:
+            st.session_state[k] = ""
+
+# --- 3. UI LAYOUT ---
+
+if os.path.exists("CYPHER.png"): st.image("CYPHER.png")
+if os.path.exists("Lock Lips.png"): st.image("Lock Lips.png")
+
+kw = st.text_input("Key", type="password", key="lips", placeholder="SECRET KEY").strip()
+hint_text = st.text_input("Hint", key="hint", placeholder="KEY HINT (Optional)")
+
+if os.path.exists("Kiss Chemistry.png"): st.image("Kiss Chemistry.png")
+user_input = st.text_area("Message", height=120, key="chem", placeholder="YOUR MESSAGE")
+
+output_placeholder = st.empty()
+kiss_btn, tell_btn = st.button("KISS"), st.button("TELL")
+st.button("DESTROY CHEMISTRY", on_click=clear_everything)
+
+# --- FOOTER SECTION (LPB & CREDIT) ---
+st.write("---") 
+if os.path.exists("LPB.png"): 
+    st.image("LPB.png")
+st.markdown('<p class="credit-text">CREATED BY LILPEACHBAT</p>', unsafe_allow_html=True)
+
+# --- 4. PROCESSING ---
+if kw and (kiss_btn or tell_btn):
+    params = get_keys_and_perms(kw)
+    
+    if kiss_btn:
+        data = user_input.encode('utf-8')
+        tag = hashlib.sha256(data).digest()[:4]
+        payload = data + tag
+        
+        nonce_bytes = [secrets.randbelow(256) for _ in range(4)]
+        prev = int.from_bytes(hashlib.sha256(bytes(nonce_bytes)).digest()[:1], 'big')
+        res_list = [to_emoji(b) for b in nonce_bytes]
+        
+        for byte in payload:
+            current = byte ^ prev
+            for r in range(ROUNDS):
+                current = params[r]['p'][current]
+                current = (params[r]['a'] * current + params[r]['b']) % 256
+            res_list.append(to_emoji(current))
+            prev = current
+        res = " ".join(res_list)
+        with output_placeholder.container():
+            st.markdown(f'<div class="result-box">{res}</div>', unsafe_allow_html=True)
+            components.html(f"""<button onclick="navigator.share({{title:'Secret',text:`{res}\\n\\nHint: {hint_text}`}})" style="background-color:#B4A7D6; color:#FFD4E5; font-weight:bold; border-radius:15px; min-height:80px; width:100%; cursor:pointer; font-size: 28px; border:none; text-transform:uppercase;">SHARE ✨</button>""", height=100)
+
+    if tell_btn:
+        try:
+            parts = []
+            for chunk in user_input.split():
+                val = from_emoji(chunk)
+                if val is None:
+                    break # Ignore non-emoji text (like "Hint:...")
+                parts.append(val)
+
+            if len(parts) < 9: 
+                raise ValueError("Message format invalid or too short")
             
-            time.sleep(0.5)
-            try:
-                df = conn.read(ttl=0)
-                new_row = pd.DataFrame([{"Name": st.session_state.player_name, "Score": 50, "Date": datetime.datetime.now().strftime("%Y-%m-%d")}])
-                conn.update(data=pd.concat([df, new_row], ignore_index=True))
-                st.success("✨ Score recorded! ✨")
-                time.sleep(2.0)
-            except:
-                st.error("⚠️ Database Error")
+            nonce_ints = parts[:4]
+            ciphertext_payload = parts[4:]
+            prev = int.from_bytes(hashlib.sha256(bytes(nonce_ints)).digest()[:1], 'big')
             
-            st.session_state.current_q, st.session_state.target_ans = generate_spell(unit_choice, level_choice)
-            st.rerun()
-        else:
-            st.error("The magic failed! (╥﹏╥)")
-    except ValueError:
-        st.warning("🔮 Please enter a numeric answer!")
+            decoded_bytes = []
+            for current_cipher in ciphertext_payload:
+                temp = current_cipher
+                for r in reversed(range(ROUNDS)):
+                    a_inv = pow(params[r]['a'], -1, 256)
+                    temp = (a_inv * (temp - params[r]['b'])) % 256
+                    temp = params[r]['inv_p'][temp]
+                original_byte = temp ^ prev
+                decoded_bytes.append(original_byte)
+                prev = current_cipher
+            
+            final_data = bytes(decoded_bytes[:-4])
+            received_tag = bytes(decoded_bytes[-4:])
+            computed_tag = hashlib.sha256(final_data).digest()[:4]
+            
+            if computed_tag != received_tag:
+                st.error("Integrity Error! Check Key or Hint.")
+            else:
+                decoded_msg = final_data.decode('utf-8')
+                output_placeholder.markdown(f'<div class="whisper-text">Cypher Whispers: {decoded_msg}</div>', unsafe_allow_html=True)
+        except Exception:
+            # We maintain the "Sacred" generic error unless you choose to use the diagnostic expander
+            st.error("Chemistry Error! Check Key or Hint.")
