@@ -209,3 +209,4 @@ if kw and (kiss_btn or tell_btn):
             output_placeholder.markdown(f'<div class="whisper-text">Cypher Whispers: {decoded_msg}</div>', unsafe_allow_html=True)
         except Exception:
             st.error("Chemistry Error! Check Key or Message.")
+
