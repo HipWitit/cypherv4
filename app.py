@@ -1,4 +1,13 @@
 import streamlit as st
+import re
+import os
+import secrets
+import hashlib
+import math
+import streamlit.components.v1 as components
+from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.backends import default_backend
 
 # --- 1. CONFIG & PWA HEADERS ---
 st.set_page_config(page_title="Cypher Lite", layout="centered")
@@ -11,16 +20,6 @@ st.markdown(f"""
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="theme-color" content="#B4A7D6">
 """, unsafe_allow_html=True)
-
-import re
-import os
-import secrets
-import hashlib
-import math
-import streamlit.components.v1 as components
-from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
-from cryptography.hazmat.primitives import hashes
-from cryptography.hazmat.backends import default_backend
 
 # --- 2. CRYPTO-STRENGTH ENGINE ---
 raw_pepper = st.secrets.get("MY_SECRET_PEPPER") or "global_unicode_spice_2026"
@@ -120,6 +119,7 @@ def get_keys_and_perms(kw):
     rounds_params = []
     for i in range(ROUNDS):
         h = hashlib.sha256(master_key + i.to_bytes(4, 'big')).digest()
+        # 'a' is always odd, ensuring gcd(a, 256) == 1
         a = (int.from_bytes(h[:4], 'big') % 120) * 2 + 1 
         b = int.from_bytes(h[4:8], 'big') % 256
         p_list = list(range(256))
@@ -150,7 +150,7 @@ output_placeholder = st.empty()
 kiss_btn, tell_btn = st.button("KISS"), st.button("TELL")
 st.button("DESTROY CHEMISTRY", on_click=clear_everything)
 
-# --- FOOTER SECTION (LPB & CREDIT) ---
+# --- FOOTER SECTION ---
 st.write("---") 
 if os.path.exists("LPB.png"): 
     st.image("LPB.png")
@@ -162,16 +162,22 @@ if kw and (kiss_btn or tell_btn):
     
     if kiss_btn:
         data = user_input.encode('utf-8')
+        # ADDED: Integrity Tag (First 4 bytes of SHA256)
+        tag = hashlib.sha256(data).digest()[:4]
+        payload = data + tag
+        
         nonce_bytes = [secrets.randbelow(256) for _ in range(4)]
         prev = int.from_bytes(hashlib.sha256(bytes(nonce_bytes)).digest()[:1], 'big')
         res_list = [to_emoji(b) for b in nonce_bytes]
-        for byte in data:
+        
+        for byte in payload:
             current = byte ^ prev
             for r in range(ROUNDS):
                 current = params[r]['p'][current]
                 current = (params[r]['a'] * current + params[r]['b']) % 256
             res_list.append(to_emoji(current))
             prev = current
+        
         res = " ".join(res_list)
         with output_placeholder.container():
             st.markdown(f'<div class="result-box">{res}</div>', unsafe_allow_html=True)
@@ -179,16 +185,15 @@ if kw and (kiss_btn or tell_btn):
 
     if tell_btn:
         try:
-            # Updated emoji processing logic
             parts = []
             for chunk in user_input.split():
                 val = from_emoji(chunk)
                 if val is None:
-                    raise ValueError("Invalid emoji block")
+                    raise ValueError("Formatting Error: Invalid Emoji Block")
                 parts.append(val)
 
-            if len(parts) < 5: 
-                raise ValueError("Message too short")
+            if len(parts) < 9: # 4 nonce + 4 tag + at least 1 msg byte
+                raise ValueError("Length Error: Message incomplete")
             
             nonce_ints = parts[:4]
             ciphertext_payload = parts[4:]
@@ -205,8 +210,18 @@ if kw and (kiss_btn or tell_btn):
                 decoded_bytes.append(original_byte)
                 prev = current_cipher
             
-            decoded_msg = bytes(decoded_bytes).decode('utf-8')
-            output_placeholder.markdown(f'<div class="whisper-text">Cypher Whispers: {decoded_msg}</div>', unsafe_allow_html=True)
-        except Exception:
-            st.error("Chemistry Error! Check Key or Message.")
-
+            # Split tag from message
+            final_data = bytes(decoded_bytes[:-4])
+            received_tag = bytes(decoded_bytes[-4:])
+            computed_tag = hashlib.sha256(final_data).digest()[:4]
+            
+            if computed_tag != received_tag:
+                st.error("Integrity Error: Message was tampered with or Key is wrong.")
+            else:
+                decoded_msg = final_data.decode('utf-8')
+                output_placeholder.markdown(f'<div class="whisper-text">Cypher Whispers: {decoded_msg}</div>', unsafe_allow_html=True)
+        
+        except UnicodeDecodeError:
+            st.error("Chemistry Error: Key is likely incorrect (Decryption resulted in gibberish).")
+        except Exception as e:
+            st.error(f"Error: {str(e)}")
